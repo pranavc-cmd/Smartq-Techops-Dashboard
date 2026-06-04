@@ -1,0 +1,3011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartQ Tech Ops Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+:root{
+  --bg:#f0f4fa;
+  --s1:#ffffff;
+  --s2:#f6f8fd;
+  --s3:#edf1f9;
+  --bd:#dce3f0;
+  --bd2:#c8d2e8;
+  --t1:#0f1629;
+  --t2:#4a5778;
+  --t3:#8e9bbf;
+  --blue:#1a6ef5;
+  --blue-lt:#e8f0fe;
+  --blue-mid:#c6d9fd;
+  --green:#0a9e6c;
+  --green-lt:#e4f7f1;
+  --amber:#c97b00;
+  --amber-lt:#fef3dc;
+  --red:#d93050;
+  --red-lt:#fde8ec;
+  --purple:#6c3fc8;
+  --purple-lt:#ede9fd;
+  --teal:#0891b2;
+  --teal-lt:#e0f5fa;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--t1);min-height:100vh;}
+.app{display:flex;flex-direction:column;height:100vh;}
+
+/* TOP BAR */
+.topbar{
+  background:#ffffff;
+  border-bottom:1.5px solid var(--bd);
+  padding:0 22px;
+  display:flex;align-items:center;justify-content:space-between;
+  height:54px;flex-shrink:0;
+  box-shadow:0 1px 0 var(--bd),0 2px 12px rgba(15,22,41,0.06);
+  position:relative;z-index:10;
+}
+.topbar-left{display:flex;align-items:center;gap:14px;}
+.logo{display:flex;align-items:center;gap:8px;}
+.logo-sq{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:24px;height:24px;border-radius:6px;
+  background:linear-gradient(135deg,#1a6ef5,#0047d0);
+  font-size:10px;font-weight:800;color:#fff;letter-spacing:-.5px;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  box-shadow:0 2px 8px rgba(26,110,245,0.35);
+}
+.logo-text{font-size:14px;font-weight:700;letter-spacing:-.3px;color:var(--t1);}
+.logo-text em{color:var(--blue);font-style:normal;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+#last-sync{font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace;}
+.file-badge{font-size:9px;background:var(--blue-lt);border:1px solid var(--blue-mid);border-radius:20px;padding:2px 9px;color:var(--blue);white-space:nowrap;font-family:'JetBrains Mono',monospace;font-weight:500;}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+
+/* BUTTONS */
+.btn{padding:7px 14px;border-radius:7px;font-size:11.5px;font-weight:600;cursor:pointer;border:none;font-family:'Plus Jakarta Sans',sans-serif;transition:all .15s;letter-spacing:.01em;}
+.btn-ghost{background:#f6f8fd;color:var(--t2);border:1.5px solid var(--bd);}
+.btn-ghost:hover{background:#edf1f9;color:var(--t1);border-color:var(--bd2);}
+.btn-primary{background:var(--blue);color:#fff;box-shadow:0 2px 8px rgba(26,110,245,0.25);}
+.btn-primary:hover{background:#1560e0;box-shadow:0 3px 12px rgba(26,110,245,0.35);}
+.btn-green{background:var(--green);color:#fff;box-shadow:0 2px 8px rgba(10,158,108,0.25);}
+.btn-green:hover{background:#098c5e;box-shadow:0 3px 12px rgba(10,158,108,0.35);}
+.btn-sm{padding:5px 11px;font-size:11px;}
+
+/* SLA SWITCHER */
+.sla-switcher{display:flex;align-items:center;gap:3px;background:var(--s2);border:1.5px solid var(--bd);border-radius:8px;padding:3px 6px;}
+.sla-switcher > span{font-size:9.5px;color:var(--t3);padding:0 4px;white-space:nowrap;font-family:'JetBrains Mono',monospace;}
+.sla-preset-btn{background:transparent;border:none;border-radius:6px;padding:4px 10px;font-size:10.5px;font-weight:500;color:var(--t2);cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .15s;}
+.sla-preset-btn:hover{color:var(--t1);}
+.sla-preset-btn.active{background:var(--blue);color:#fff;box-shadow:0 1px 6px rgba(26,110,245,0.3);}
+
+/* DATE RANGE */
+.date-range-wrap{display:flex;align-items:center;gap:6px;background:var(--s2);border:1.5px solid var(--bd);border-radius:8px;padding:4px 10px;}
+.date-range-select{background:transparent;border:none;color:var(--t1);font-size:11.5px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;cursor:pointer;}
+.date-range-select option{background:#fff;color:var(--t1);}
+#range-count{font-size:10px;color:var(--blue);font-family:'JetBrains Mono',monospace;}
+.date-range-custom{display:flex;align-items:center;gap:6px;}
+.date-input{background:transparent;border:none;border-bottom:1px solid var(--bd2);color:var(--t1);font-size:10px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;padding:2px 4px;width:110px;cursor:pointer;}
+
+/* EXPORT */
+.export-wrap{position:relative;}
+.export-menu{position:absolute;top:calc(100% + 6px);right:0;background:#fff;border:1.5px solid var(--bd);border-radius:10px;padding:6px;min-width:190px;z-index:500;box-shadow:0 8px 32px rgba(15,22,41,0.12);}
+.export-menu-title{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;padding:4px 8px 6px;border-bottom:1px solid var(--bd);margin-bottom:4px;font-family:'JetBrains Mono',monospace;}
+.export-item{display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;background:none;border:none;color:var(--t1);font-size:12px;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;border-radius:6px;text-align:left;transition:background .15s;}
+.export-item:hover{background:var(--blue-lt);}
+
+/* TABS */
+.tabs{display:flex;gap:0;padding:0 22px;background:#fff;border-bottom:1.5px solid var(--bd);flex-shrink:0;}
+.tab{padding:12px 16px;font-size:11.5px;font-weight:500;color:var(--t3);background:none;border:none;border-bottom:2.5px solid transparent;cursor:pointer;transition:all .18s;letter-spacing:.01em;font-family:'Plus Jakarta Sans',sans-serif;}
+.tab:hover{color:var(--t2);}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:600;}
+
+/* MAIN */
+.main{flex:1;overflow-y:auto;padding:20px 22px;}
+.main::-webkit-scrollbar{width:6px;}
+.main::-webkit-scrollbar-track{background:var(--bg);}
+.main::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:3px;}
+
+/* CONFIG PANEL */
+.config-panel{background:#fff;border:1.5px solid var(--bd);border-radius:14px;padding:28px;max-width:680px;margin:40px auto;box-shadow:0 4px 24px rgba(15,22,41,0.07);}
+.config-panel h2{font-size:17px;font-weight:700;margin-bottom:6px;letter-spacing:-.3px;}
+.config-panel p{font-size:12.5px;color:var(--t2);margin-bottom:20px;line-height:1.7;}
+.form-group{margin-bottom:14px;}
+.form-group label{display:block;font-size:9.5px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;font-family:'JetBrains Mono',monospace;}
+.form-group input,.form-group select{width:100%;background:var(--s2);border:1.5px solid var(--bd);border-radius:8px;padding:9px 12px;color:var(--t1);font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;transition:border-color .15s;}
+.form-group input:focus,.form-group select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,110,245,0.1);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.config-hint{background:var(--blue-lt);border:1px solid var(--blue-mid);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--t2);margin-bottom:18px;line-height:1.7;}
+.config-hint code{background:rgba(26,110,245,0.1);padding:1px 5px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--blue);}
+
+/* STATS ROW */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px;}
+.stat{
+  background:#fff;
+  border:1.5px solid var(--bd);
+  border-radius:12px;
+  padding:15px 17px;
+  position:relative;
+  overflow:hidden;
+  transition:box-shadow .2s,border-color .2s;
+}
+.stat:hover{box-shadow:0 4px 16px rgba(15,22,41,0.08);border-color:var(--bd2);}
+.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.stat.bl::before{background:linear-gradient(90deg,var(--blue),#6ba4ff);}
+.stat.gr::before{background:linear-gradient(90deg,var(--green),#34d99e);}
+.stat.am::before{background:linear-gradient(90deg,var(--amber),#f5a623);}
+.stat.re::before{background:linear-gradient(90deg,var(--red),#ff6b85);}
+.stat.pu::before{background:linear-gradient(90deg,var(--purple),#9d74f0);}
+.stat-l{font-size:9.5px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;font-family:'JetBrains Mono',monospace;}
+.stat-v{font-size:28px;font-weight:700;letter-spacing:-1.5px;line-height:1;}
+.stat.bl .stat-v{color:var(--blue);}
+.stat.gr .stat-v{color:var(--green);}
+.stat.am .stat-v{color:var(--amber);}
+.stat.re .stat-v{color:var(--red);}
+.stat.pu .stat-v{color:var(--purple);}
+.stat-s{font-size:10px;color:var(--t3);margin-top:5px;font-family:'JetBrains Mono',monospace;}
+
+/* FILTERS */
+.filters{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.filter-select{background:#fff;border:1.5px solid var(--bd);border-radius:7px;padding:7px 10px;color:var(--t1);font-size:11.5px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;cursor:pointer;transition:border-color .15s;}
+.filter-select:focus{border-color:var(--blue);}
+.search-box{flex:1;min-width:200px;background:#fff;border:1.5px solid var(--bd);border-radius:7px;padding:7px 12px;color:var(--t1);font-size:11.5px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;transition:border-color .15s,box-shadow .15s;}
+.search-box:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,110,245,0.1);}
+.search-box::placeholder{color:var(--t3);}
+
+/* TICKET TABLE */
+.table-wrap{background:#fff;border:1.5px solid var(--bd);border-radius:12px;overflow:hidden;overflow-x:auto;box-shadow:0 2px 12px rgba(15,22,41,0.06);}
+.table-wrap table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;min-width:1368px;}
+table{width:100%;border-collapse:collapse;font-size:12px;table-layout:auto;}
+th{text-align:left;font-size:9.5px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.08em;padding:10px 10px;border-bottom:1.5px solid var(--bd);background:var(--s2);white-space:nowrap;font-family:'JetBrains Mono',monospace;}
+td{padding:9px 10px;color:var(--t1);border-bottom:1px solid var(--s3);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--blue-lt);}
+
+/* Fixed column widths */
+.table-wrap table th:nth-child(1),.table-wrap table td:nth-child(1){width:48px;}
+.table-wrap table th:nth-child(2),.table-wrap table td:nth-child(2){width:90px;max-width:90px;overflow:hidden;}
+.table-wrap table th:nth-child(3),.table-wrap table td:nth-child(3){width:110px;}
+.table-wrap table th:nth-child(4),.table-wrap table td:nth-child(4){width:100px;}
+.table-wrap table th:nth-child(5),.table-wrap table td:nth-child(5){width:110px;}
+.table-wrap table th:nth-child(6),.table-wrap table td:nth-child(6){width:100px;}
+.table-wrap table th:nth-child(7),.table-wrap table td:nth-child(7){width:95px;}
+.table-wrap table th:nth-child(8),.table-wrap table td:nth-child(8){width:52px;}
+.table-wrap table th:nth-child(9),.table-wrap table td:nth-child(9){width:100px;}
+.table-wrap table th:nth-child(10),.table-wrap table td:nth-child(10){width:100px;}
+.table-wrap table th:nth-child(11),.table-wrap table td:nth-child(11){width:auto;}
+.table-wrap table th:nth-child(12),.table-wrap table td:nth-child(12){width:120px;}
+.table-wrap table th:nth-child(13),.table-wrap table td:nth-child(13){width:78px;}
+.table-wrap table th:nth-child(14),.table-wrap table td:nth-child(14){width:135px;min-width:135px;text-align:center;}
+
+.cell-id{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t3);}
+.cell-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cell-desc{color:var(--t2);font-size:11px;white-space:normal;word-break:break-word;line-height:1.5;}
+.cell-org{color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.col-date{font-size:10.5px;color:var(--t3);white-space:nowrap;font-family:'JetBrains Mono',monospace;}
+.action-cell{text-align:center;white-space:nowrap;}
+.mono{font-family:'JetBrains Mono',monospace;font-size:11px;}
+
+/* Action buttons */
+.action-btns{display:flex;flex-direction:column;gap:5px;align-items:center;}
+.wip-btn{display:inline-block;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid var(--blue-mid);background:var(--blue-lt);color:var(--blue);font-family:'Plus Jakarta Sans',sans-serif;transition:all .15s;white-space:nowrap;width:100%;}
+.wip-btn:hover{background:var(--blue-mid);border-color:var(--blue);}
+.close-btn{display:inline-block;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid rgba(10,158,108,.3);background:var(--green-lt);color:var(--green);font-family:'Plus Jakarta Sans',sans-serif;transition:all .15s;white-space:nowrap;width:100%;}
+.close-btn:hover{background:rgba(10,158,108,.15);border-color:var(--green);}
+.closed-label{font-size:11px;color:var(--green);font-family:'JetBrains Mono',monospace;display:flex;align-items:center;justify-content:center;gap:4px;}
+.wip-label{font-size:11px;color:var(--blue);font-family:'JetBrains Mono',monospace;display:flex;align-items:center;justify-content:center;gap:4px;margin-bottom:4px;}
+
+/* TOOLTIP */
+.has-tooltip{position:relative;cursor:default;}
+.has-tooltip:hover::after{
+  content:attr(data-tip);position:absolute;left:0;top:100%;margin-top:4px;
+  background:#1a2540;border:1px solid rgba(255,255,255,0.1);color:#e8eef8;
+  font-size:11.5px;padding:8px 12px;border-radius:8px;
+  white-space:pre-wrap;max-width:320px;word-break:break-word;
+  z-index:500;line-height:1.6;box-shadow:0 8px 32px rgba(0,0,0,0.25);
+  pointer-events:none;font-family:'Plus Jakarta Sans',sans-serif;
+}
+
+/* BADGES */
+.bdg{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10.5px;font-weight:600;font-family:'JetBrains Mono',monospace;}
+.bdg-p1{background:var(--red-lt);color:var(--red);}
+.bdg-p2{background:var(--amber-lt);color:var(--amber);}
+.bdg-p3{background:var(--blue-lt);color:var(--blue);}
+.bdg-open{background:var(--amber-lt);color:var(--amber);}
+.bdg-wip{background:var(--blue-lt);color:var(--blue);}
+.bdg-closed{background:var(--green-lt);color:var(--green);}
+.bdg-completed{background:var(--teal-lt);color:var(--teal);}
+.bg{background:var(--green-lt);color:var(--green);}
+.ba{background:var(--amber-lt);color:var(--amber);}
+.br{background:var(--red-lt);color:var(--red);}
+.bb{background:var(--blue-lt);color:var(--blue);}
+
+/* POC DETAIL */
+.poc-detail-wrap{background:#fff;border:1.5px solid var(--bd);border-radius:12px;overflow:hidden;overflow-x:auto;box-shadow:0 2px 12px rgba(15,22,41,0.06);}
+.poc-detail-wrap table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;min-width:900px;}
+.poc-detail-wrap table th:nth-child(1),.poc-detail-wrap table td:nth-child(1){width:52px;}
+.poc-detail-wrap table th:nth-child(2),.poc-detail-wrap table td:nth-child(2){width:130px;}
+.poc-detail-wrap table th:nth-child(3),.poc-detail-wrap table td:nth-child(3){width:110px;}
+.poc-detail-wrap table th:nth-child(4),.poc-detail-wrap table td:nth-child(4){width:60px;}
+.poc-detail-wrap table th:nth-child(5),.poc-detail-wrap table td:nth-child(5){width:90px;}
+.poc-detail-wrap table th:nth-child(6),.poc-detail-wrap table td:nth-child(6){width:90px;}
+.poc-detail-wrap table th:nth-child(7),.poc-detail-wrap table td:nth-child(7){width:80px;}
+.poc-detail-wrap table th:nth-child(8),.poc-detail-wrap table td:nth-child(8){width:70px;}
+.poc-detail-wrap table th:nth-child(9),.poc-detail-wrap table td:nth-child(9){width:auto;}
+.backlog-poc-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+.bpoc-tab{padding:6px 14px;border-radius:20px;font-size:11.5px;font-weight:500;cursor:pointer;border:1.5px solid var(--bd);background:#fff;color:var(--t2);transition:all .15s;display:flex;align-items:center;gap:6px;}
+.bpoc-tab:hover{color:var(--t1);border-color:var(--blue);}
+.bpoc-tab.active{background:var(--blue-lt);color:var(--blue);border-color:var(--blue-mid);}
+.bpoc-count{background:rgba(0,0,0,0.07);padding:1px 6px;border-radius:10px;font-size:9.5px;font-family:'JetBrains Mono',monospace;}
+.bpoc-tab.active .bpoc-count{background:rgba(26,110,245,0.15);}
+
+/* COLUMN FILTERS */
+.table-wrap .thead-labels th{background:var(--s2);padding:10px 10px;}
+.table-wrap .thead-filters td{background:var(--s3);padding:4px 5px;border-bottom:1.5px solid var(--bd);vertical-align:middle;}
+.col-filter{width:100%;background:#fff;border:1px solid var(--bd);border-radius:5px;padding:4px 6px;color:var(--t1);font-size:10.5px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;box-sizing:border-box;transition:border-color .15s;}
+.col-filter:focus{border-color:var(--blue);}
+
+/* Chart tables */
+.chart-card table th{background:var(--s2);white-space:nowrap;}
+.chart-card table td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;}
+.chart-card table td:last-child{white-space:normal;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(15,22,41,0.45);display:flex;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(5px);}
+.modal{background:#fff;border:1.5px solid var(--bd);border-radius:16px;box-shadow:0 12px 48px rgba(15,22,41,0.18);padding:28px;width:480px;max-width:95vw;}
+.modal h3{font-size:16px;font-weight:700;margin-bottom:6px;letter-spacing:-.2px;}
+.modal p{font-size:12.5px;color:var(--t2);margin-bottom:20px;line-height:1.7;}
+.modal-ticket{background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:18px;font-size:12px;}
+.modal-ticket .row{display:flex;gap:6px;margin-bottom:6px;}
+.modal-ticket .row:last-child{margin-bottom:0;}
+.modal-ticket .label{color:var(--t3);width:80px;flex-shrink:0;}
+.modal-ticket .val{color:var(--t1);}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;}
+.notes-input{width:100%;background:var(--s2);border:1.5px solid var(--bd);border-radius:8px;padding:9px 12px;color:var(--t1);font-size:12.5px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;resize:vertical;min-height:70px;margin-bottom:14px;transition:border-color .15s;}
+.notes-input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(10,158,108,0.1);}
+.notes-input::placeholder{color:var(--t3);}
+
+/* Data wrap / Backlog wrap */
+.data-wrap{background:#fff;border:1.5px solid var(--bd);border-radius:12px;overflow:hidden;overflow-x:auto;box-shadow:0 2px 12px rgba(15,22,41,0.06);}
+.data-wrap table{width:100%;border-collapse:collapse;font-size:12px;table-layout:auto;}
+.backlog-wrap{background:#fff;border:1.5px solid var(--bd);border-radius:12px;overflow:hidden;overflow-x:auto;box-shadow:0 2px 12px rgba(15,22,41,0.06);}
+.backlog-wrap table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;min-width:1200px;}
+.backlog-wrap table th:nth-child(1),.backlog-wrap table td:nth-child(1){width:52px;}
+.backlog-wrap table th:nth-child(2),.backlog-wrap table td:nth-child(2){width:105px;}
+.backlog-wrap table th:nth-child(3),.backlog-wrap table td:nth-child(3){width:120px;}
+.backlog-wrap table th:nth-child(4),.backlog-wrap table td:nth-child(4){width:110px;}
+.backlog-wrap table th:nth-child(5),.backlog-wrap table td:nth-child(5){width:105px;}
+.backlog-wrap table th:nth-child(6),.backlog-wrap table td:nth-child(6){width:105px;}
+.backlog-wrap table th:nth-child(7),.backlog-wrap table td:nth-child(7){width:55px;}
+.backlog-wrap table th:nth-child(8),.backlog-wrap table td:nth-child(8){width:75px;}
+.backlog-wrap table th:nth-child(9),.backlog-wrap table td:nth-child(9){width:88px;}
+.backlog-wrap table th:nth-child(10),.backlog-wrap table td:nth-child(10){width:65px;}
+.backlog-wrap table th:nth-child(11),.backlog-wrap table td:nth-child(11){width:auto;}
+.backlog-wrap table th:nth-child(12),.backlog-wrap table td:nth-child(12){width:120px;}
+.backlog-wrap table th:nth-child(13),.backlog-wrap table td:nth-child(13){width:135px;min-width:135px;text-align:center;}
+
+/* CHARTS */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.chart-card{background:#fff;border:1.5px solid var(--bd);border-radius:12px;padding:18px;box-shadow:0 2px 12px rgba(15,22,41,0.06);}
+.chart-title{font-size:13px;font-weight:600;margin-bottom:14px;color:var(--t1);letter-spacing:-.2px;}
+.cw{position:relative;width:100%;}
+
+/* EMPTY / LOADING */
+.empty{padding:48px;text-align:center;color:var(--t3);}
+.empty svg{margin-bottom:12px;opacity:.25;}
+.empty p{font-size:13px;}
+.loading{padding:48px;text-align:center;color:var(--t2);}
+.spinner{width:26px;height:26px;border:2.5px solid var(--bd);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* TOAST */
+.toast-wrap{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:2000;}
+.toast{background:#fff;border:1.5px solid var(--bd);border-radius:10px;padding:12px 16px;font-size:12px;display:flex;align-items:center;gap:8px;animation:slideIn .2s ease;max-width:300px;box-shadow:0 4px 20px rgba(15,22,41,0.12);}
+.toast.success{border-color:rgba(10,158,108,.3);color:var(--green);}
+.toast.error{border-color:rgba(217,48,80,.3);color:var(--red);}
+@keyframes slideIn{from{transform:translateX(20px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+
+@media(max-width:640px){.charts-grid{grid-template-columns:1fr;}.form-row{grid-template-columns:1fr;}.filters{flex-direction:column;}.filter-select,.search-box{width:100%;}}
+
+/* SLA PRESET SWITCHER — reused */
+.sla-switcher{display:flex;align-items:center;gap:4px;background:var(--s2);border:1.5px solid var(--bd);border-radius:8px;padding:4px 8px;}
+
+/* DATE RANGE FILTER */
+.date-range-wrap{display:flex;align-items:center;gap:8px;background:var(--s2);border:1.5px solid var(--bd);border-radius:8px;padding:4px 10px;}
+.date-range-select{background:transparent;border:none;color:var(--t1);font-size:12px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;cursor:pointer;}
+.date-range-select option{background:#fff;}
+.date-range-custom{display:flex;align-items:center;gap:6px;}
+.date-input{background:transparent;border:none;border-bottom:1px solid var(--bd2);color:var(--t1);font-size:11px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;padding:2px 4px;width:110px;cursor:pointer;}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">
+      <div class="logo-sq">SQ</div>
+      <div class="logo-text"><em>SmartQ</em> Tech Ops</div>
+    </div>
+    <div class="live-dot" title="Live sync active"></div>
+    <span id="last-sync">Not synced yet</span>
+    <span class="file-badge">5 sources</span><span style="font-size:9px;background:#fef3dc;border:1px solid #f5a623;border-radius:20px;padding:2px 8px;color:#c97b00;font-family:'JetBrains Mono',monospace;font-weight:700">v3.6</span>
+  </div>
+  <div class="topbar-right">
+    <!-- SLA Preset Switcher -->
+    <div class="sla-switcher">
+      <span style="font-size:10px;color:var(--t3);white-space:nowrap">SLA Limits:</span>
+      <button class="sla-preset-btn" data-preset="original" onclick="setSLAPreset('original')" title="P1:4h P2:48h P3:72h">Planned Approach</button>
+      <button class="sla-preset-btn" data-preset="relaxed"  onclick="setSLAPreset('relaxed')"  title="P1:8h P2:72h P3:120h">Current Approach</button>
+    </div>
+    <!-- Global Date Range Filter -->
+    <div class="date-range-wrap">
+      <select class="date-range-select" id="global-range" onchange="applyGlobalRange()">
+        <option value="all">All time</option>
+        <option value="7">Last 7 days</option>
+        <option value="30" selected>Last 30 days</option>
+        <option value="60">Last 60 days</option>
+        <option value="90">Last 90 days</option>
+        <option value="custom">Custom range</option>
+      </select>
+      <div class="date-range-custom" id="custom-range" style="display:none">
+        <input type="date" id="range-from" onchange="applyGlobalRange()" class="date-input">
+        <span style="color:var(--t3);font-size:11px">→</span>
+        <input type="date" id="range-to" onchange="applyGlobalRange()" class="date-input">
+      </div>
+      <span id="range-count" style="font-size:11px;color:var(--t3);white-space:nowrap"></span>
+    </div>
+    <div class="export-wrap" id="export-wrap">
+      <button class="btn btn-ghost btn-sm" onclick="toggleExportMenu(event)">↓ Export ▾</button>
+      <div class="export-menu" id="export-menu" style="display:none">
+        <div class="export-menu-title">Export current view</div>
+        <button class="export-item" onclick="exportExcel()">📊 Excel (.xlsx)</button>
+        <button class="export-item" onclick="exportImage()">🖼 Image (.png)</button>
+        <button class="export-item" onclick="exportPDF()">📄 PDF (.pdf)</button>
+      </div>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="openConfig()">⚙ Configure</button>
+    <button class="btn btn-ghost btn-sm" onclick="setupHeaders()" title="Write Closure Notes / Status / Closure Date headers to X1,Y1,Z1 on all 5 files" style="color:var(--amber);border-color:var(--amber);display:none">⚑ Setup X/Y/Z</button>
+    <button class="btn btn-primary btn-sm" onclick="loadTickets()">↻ Refresh</button>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="showTab('tickets',this)">All Tickets</button>
+  <button class="tab" onclick="showTab('orgview',this)">Organisation View</button>
+  <button class="tab" onclick="showTab('repeat',this)">Repeat Issues</button>
+  <button class="tab" onclick="showTab('backlog',this)">Backlog</button>
+  <button class="tab" onclick="showTab('poc',this)">POC Performance</button>
+  <button class="tab" onclick="showTab('analytics',this)">Analytics</button>
+</div>
+
+<!-- MAIN -->
+<div class="main" id="main-area">
+  <div class="loading" id="initial-msg">
+    <div class="spinner"></div>
+    <p>Loading tickets from SharePoint…</p>
+  </div>
+</div>
+
+</div>
+
+<!-- CLOSE MODAL -->
+<div class="modal-overlay" id="close-modal" style="display:none">
+  <div class="modal">
+    <h3>Mark Ticket as Closed</h3>
+    <p>Add closure notes before marking this ticket as resolved.</p>
+    <div class="modal-ticket" id="modal-ticket-info"></div>
+    <textarea class="notes-input" id="closure-notes" placeholder="Describe what was done to resolve this issue…" rows="3"></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-green" onclick="confirmClose()" id="confirm-btn">✓ Mark Closed</button>
+    </div>
+  </div>
+</div>
+
+<!-- TASK EDIT MODAL -->
+<div class="modal-overlay" id="task-modal" style="display:none">
+  <div class="modal" style="width:520px">
+    <h3>Edit Task</h3>
+    <div class="modal-ticket" id="task-modal-info"></div>
+    <div class="form-group" style="margin-top:12px">
+      <label>Status</label>
+      <select id="task-status" style="width:100%;padding:8px;border:1.5px solid var(--bd);border-radius:6px;background:var(--s2);color:var(--t1);font-family:'Plus Jakarta Sans',sans-serif;outline:none">
+        <option>Not Started</option><option>In Progress</option><option>Completed</option><option>On Hold</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin-top:10px">
+      <label>Due Date</label>
+      <input type="date" id="task-due" style="width:100%;padding:8px;border:1.5px solid var(--bd);border-radius:6px;background:var(--s2);color:var(--t1);font-family:'Plus Jakarta Sans',sans-serif;outline:none">
+    </div>
+    <div class="form-group" style="margin-top:10px">
+      <label>Notes</label>
+      <textarea class="notes-input" id="task-notes" placeholder="Add notes…" rows="3"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="document.getElementById('task-modal').style.display='none'">Cancel</button>
+      <button class="btn btn-green" onclick="saveTaskEdit()" id="task-save-btn">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIG MODAL -->
+<div class="modal-overlay" id="config-modal" style="display:none">
+  <div class="modal" style="width:560px">
+    <h3>⚙ SharePoint Configuration</h3>
+    <p>Connected to <strong>5 support files</strong></p>
+    <div class="config-hint" id="token-status-hint">
+      ${`Token expires ~1 hour — get a fresh one from <a href="https://developer.microsoft.com/en-us/graph/graph-explorer" target="_blank" style="color:var(--blue)">Graph Explorer</a>. For permanent access, set up Power Automate token refresh.`}
+    </div>
+    <div class="form-group">
+      <label>Microsoft Graph Access Token</label>
+      <input type="password" id="cfg-token" placeholder="Paste your Bearer token here…">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="document.getElementById('config-modal').style.display='none'">Cancel</button>
+      <button class="btn btn-primary" onclick="saveConfig()">Save & Connect</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+// All sources on ClientServicingTeam SharePoint
+const DRIVE_ID     = 'b!7IHdNuqv3kG9HxsVxfLE2gbf586jwO1BqSfTaTDZdb_ZEv-TFcTjTbxMPU9xllCD';
+const DRIVE_ID_CST = DRIVE_ID; // kept for compatibility
+
+const SOURCES = [
+  { name: 'Pan India',           itemId: '01LQ4J2L5BV3L2JMWSIRFIY47PYZ5KX7G7',  sheet: 'Sheet1' },
+  { name: 'LTIM',                itemId: '01LQ4J2LY77YBCYEZY6ZHYCKBHKOBPJZUY',  sheet: 'Sheet1' },
+  { name: 'Wellsfargo',          itemId: '01LQ4J2L4TAWGO7XPILBE3HZC2PYGJ5A7A',  sheet: 'Sheet1' },
+  { name: 'Accenture',           itemId: '01LQ4J2LZRRIQFL2TYNNDZLRB3ILR4RPCZ',        sheet: 'Sheet1' },
+  { name: 'Education Vertical',  itemId: '01LQ4J2L5HNFLGRWYMUBAIWDD4C3J7XOVX',         sheet: 'Sheet1' },
+];
+
+// Tech Requirements and Task Tracker removed — hosted on personal drive;
+// ─── AUTH & API MODE ──────────────────────────────────────────────────────────
+let CONFIG = { token: '' };
+try { const s = JSON.parse(localStorage.getItem('sq_cfg') || '{}'); Object.assign(CONFIG, s); } catch(e){}
+
+// Detect if running inside SharePoint
+const IS_SHAREPOINT = window.location.hostname.includes('sharepoint.com');
+
+// SharePoint REST API config
+const SP_SITE = 'https://cpgplc.sharepoint.com/sites/ClientServicingTeam';
+const SP_FILE_PATHS = {
+  'Pan India':          '/sites/ClientServicingTeam/Shared Documents/Pan India Requests.xlsx',
+  'LTIM':               '/sites/ClientServicingTeam/Shared Documents/LTM Requests.xlsx',
+  'Accenture':          "/personal/pranav_c_thesmartq_com/Documents/Tech Concern's Raising Form Accenture.xlsx",
+  'Wellsfargo':         '/sites/ClientServicingTeam/Shared Documents/Wellsfargo Requests.xlsx',
+  'Accenture':          '/sites/ClientServicingTeam/Shared Documents/Accenture Requests.xlsx',
+  'Education Vertical': '/sites/ClientServicingTeam/Shared Documents/EDU Requests.xlsx',
+};
+
+// SLA Presets, COL mapping etc below
+// Power Automate Auto-Token Config (fallback for non-SharePoint)
+const TOKEN_SITE_URL  = 'https://cpgplc.sharepoint.com/sites/Tech-Ops';
+const TOKEN_LIST_NAME = 'DashboardConfig';
+const TOKEN_ITEM_ID   = 1;
+
+async function fetchAutoToken() {
+  try {
+    const url = `${TOKEN_SITE_URL}/_api/lists/getbytitle('${TOKEN_LIST_NAME}')/items(${TOKEN_ITEM_ID})?$select=TokenValue`;
+    const r = await fetch(url, { credentials: 'include', headers: { 'Accept': 'application/json;odata=nometadata' } });
+    if (!r.ok) return null;
+    const d = await r.json();
+    return d.TokenValue || null;
+  } catch(e) { return null; }
+}
+
+// Get SharePoint request digest for write operations
+let _digest = null, _digestExpiry = 0;
+async function getDigest() {
+  if (_digest && Date.now() < _digestExpiry) return _digest;
+  const r = await fetch(`${SP_SITE}/_api/contextinfo`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json' }
+  });
+  if (!r.ok) throw new Error('Could not get request digest');
+  const d = await r.json();
+  _digest = d.FormDigestValue;
+  _digestExpiry = Date.now() + (d.FormDigestTimeoutSeconds - 30) * 1000;
+  return _digest;
+}
+
+async function ensureToken() {
+  if (IS_SHAREPOINT) {
+    // Test SharePoint session is active
+    try {
+      const r = await fetch(`${SP_SITE}/_api/web/title`, {
+        credentials: 'include',
+        headers: { 'Accept': 'application/json;odata=nometadata' }
+      });
+      if (r.ok) return true;
+    } catch(e) {}
+  }
+  // Try auto-token from SharePoint list
+  const autoToken = await fetchAutoToken();
+  if (autoToken) {
+    CONFIG.token = autoToken;
+    try { localStorage.setItem('sq_cfg', JSON.stringify({ token: autoToken })); } catch(e){}
+    return true;
+  }
+  return !!CONFIG.token;
+}
+
+// Auto-refresh token every 50 mins
+setInterval(async () => {
+  if (!IS_SHAREPOINT) {
+    const t = await fetchAutoToken();
+    if (t) { CONFIG.token = t; try { localStorage.setItem('sq_cfg', JSON.stringify({ token: t })); } catch(e){} }
+  }
+}, 50 * 60 * 1000);
+
+const COL = {
+  id: 0, startTime: 1, completionTime: 2, email: 3,
+  name: 4, contact: 5, requestAcross: 6, orgId: 7,
+  foodCourt: 8, mode: 9, priority: 10, description: 11,
+  comments: 12, attachment: 13, orgIdInternal: 14,
+  closureNotes: 23, // key only — actual write col resolved dynamically from header
+  status: 24,       // key only — actual write col resolved dynamically from header
+  closureDate: 25   // key only — actual write col resolved dynamically from header
+};
+
+
+
+let allTickets = [];
+let filteredTickets = []; // all tabs read from this instead of allTickets directly
+let currentTicket = null;
+let currentTask = null;
+let activeTab = 'tickets';
+let chartInstances = {};
+let _currentListFilter = 'all';
+let orgExpanded = {};
+let backlogPOC = 'All';
+let backlogRaisedDays = 0;
+let backlogAgingDays = 0;
+
+// ─── GRAPH API / SHAREPOINT REST ──────────────────────────────────────────────
+function apiBaseFor(source) {
+  return `https://graph.microsoft.com/v1.0/drives/${DRIVE_ID}/items/${source.itemId}/workbook/worksheets/${encodeURIComponent(source.sheet)}`;
+}
+function headers() {
+  return { 'Authorization': `Bearer ${CONFIG.token}`, 'Content-Type': 'application/json' };
+}
+
+async function fetchRowsFrom(source) {
+  // Use SharePoint REST API when hosted on SharePoint — uses browser session, no token needed
+  if (IS_SHAREPOINT && SP_FILE_PATHS[source.name]) {
+    const filePath = encodeURIComponent(SP_FILE_PATHS[source.name]);
+    const spBase = SP_SITE;
+    // Use known sheet name directly — no trial loop
+    const sheet = source.sheet || 'Sheet1';
+    {
+      const base = `${spBase}/_api/web/getfilebyserverrelativeurl('${filePath}')/workbook/worksheets('${encodeURIComponent(sheet)}')`;
+      const r = await fetch(`${base}/usedRange?$select=values`, {
+        credentials: 'include',
+        headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json' }
+      });
+      if (r.ok) {
+        const d = await r.json();
+        const vals = d.values || [];
+        await mergeClosureCols(vals, `${base}/range(address='X1:Z${Math.max(vals.length,1)}')?$select=values`, true);
+        return vals;
+      }
+      if (r.status === 401 || r.status === 403) throw new Error(`${source.name}: Access denied (${r.status})`);
+      throw new Error(`${source.name}: API error ${r.status}`);
+    }
+    throw new Error(`${source.name}: Sheet not found`);
+  }
+  // Fall back to Graph API with Bearer token
+  const sheetNames = [source.sheet, 'Sheet1', 'Sheet 1', 'Form1'];
+  for (const sheet of sheetNames) {
+    const base = apiBaseFor({ ...source, sheet });
+    const r = await fetch(`${base}/usedRange?$select=values`, { headers: headers() });
+    if (r.ok) {
+      const d = await r.json();
+      const vals = d.values || [];
+      await mergeClosureCols(vals, `${base}/range(address='X1:Z${Math.max(vals.length,1)}')?$select=values`, false);
+      return vals;
+    }
+    if (r.status === 401) throw new Error(`${source.name}: Token expired (401)`);
+    throw new Error(`${source.name}: API error ${r.status}`);
+  }
+  throw new Error(`${source.name}: Sheet not found`);
+}
+
+// Fetch columns X,Y,Z explicitly by address and overlay them at indices 23/24/25
+// so closure data is read from the literal cells regardless of usedRange alignment.
+async function mergeClosureCols(vals, rangeUrl, useSession) {
+  try {
+    const opts = useSession
+      ? { credentials: 'include', headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json' } }
+      : { headers: headers() };
+    const r = await fetch(rangeUrl, opts);
+    if (!r.ok) {
+      console.error('🔴 X:Z fetch FAILED', r.status, '→', rangeUrl);
+      window.__xyzDiag = window.__xyzDiag || [];
+      window.__xyzDiag.push({ url: rangeUrl, status: r.status, error: 'fetch failed' });
+      return; // leave usedRange values as-is if this fails
+    }
+    const xyz = (await r.json()).values || [];
+    // DIAGNOSTIC — log what X/Y/Z actually contain for the header + first 3 data rows
+    console.log('🟢 X:Z fetched. Header X/Y/Z =', JSON.stringify(xyz[0]),
+                '| Row2 =', JSON.stringify(xyz[1]),
+                '| Row3 =', JSON.stringify(xyz[2]));
+    window.__xyzDiag = window.__xyzDiag || [];
+    window.__xyzDiag.push({ url: rangeUrl.split('/range')[0].split('/').pop(), header: xyz[0], row2: xyz[1], row3: xyz[2], totalRows: xyz.length });
+    for (let i = 0; i < vals.length; i++) {
+      if (!Array.isArray(vals[i])) vals[i] = [];
+      while (vals[i].length < 26) vals[i].push('');
+      const trip = xyz[i] || [];
+      // Only overwrite when the explicit X:Z read has an actual value —
+      // never blank out a cell that usedRange already populated correctly.
+      if (trip[0] != null && String(trip[0]).trim() !== '') vals[i][23] = trip[0];  // X
+      if (trip[1] != null && String(trip[1]).trim() !== '') vals[i][24] = trip[1];  // Y
+      if (trip[2] != null && String(trip[2]).trim() !== '') vals[i][25] = trip[2];  // Z
+    }
+  } catch(e) { console.warn('mergeClosureCols failed:', e); }
+}
+
+async function fetchAllRows() {
+  let done = 0;
+  const total = SOURCES.length;
+  updateLoadProgress(0, total, '');
+  const results = await Promise.allSettled(
+    SOURCES.map(s => fetchRowsFrom(s).then(rows => {
+      done++;
+      updateLoadProgress(done, total, s.name);
+      return { source: s, rows };
+    }))
+  );
+  const merged = [], errors = [];
+  results.forEach(r => {
+    if (r.status === 'fulfilled') merged.push(r.value);
+    else errors.push(r.reason?.message || 'Unknown error');
+  });
+  return { merged, errors };
+}
+
+// Retry a PATCH on transient errors (503 unavailable, 429 rate-limit, 500/504)
+async function patchWithRetry(url, opts, label, maxTries = 4) {
+  const transient = new Set([429, 500, 503, 504]);
+  let lastStatus = 0;
+  for (let attempt = 1; attempt <= maxTries; attempt++) {
+    let r;
+    try {
+      r = await fetch(url, opts);
+    } catch(netErr) {
+      // network blip — treat like transient
+      if (attempt === maxTries) throw new Error(`${label}: network error after ${maxTries} tries`);
+      await new Promise(res => setTimeout(res, attempt * 700));
+      continue;
+    }
+    if (r.ok) return r;
+    lastStatus = r.status;
+    if (!transient.has(r.status) || attempt === maxTries) {
+      throw new Error(`${label}: ${r.status}`);
+    }
+    // Respect Retry-After header if present, else exponential-ish backoff
+    const ra = parseInt(r.headers.get('Retry-After') || '0', 10);
+    const waitMs = ra > 0 ? ra * 1000 : attempt * 800;
+    console.warn(`${label}: ${r.status} — retry ${attempt}/${maxTries-1} in ${waitMs}ms`);
+    await new Promise(res => setTimeout(res, waitMs));
+  }
+  throw new Error(`${label}: failed after ${maxTries} tries (last ${lastStatus})`);
+}
+
+async function updateCell(source, excelRowNumber, colIdx, value) {
+  const colLetter = colToLetter(colIdx);
+  const addr = `${colLetter}${excelRowNumber}`;
+  // Use SharePoint REST when on SharePoint
+  if (IS_SHAREPOINT && SP_FILE_PATHS[source.name]) {
+    const filePath = encodeURIComponent(SP_FILE_PATHS[source.name]);
+    const url = `${SP_SITE}/_api/web/getfilebyserverrelativeurl('${filePath}')/workbook/worksheets('${encodeURIComponent(source.sheet)}')/range(address='${addr}')`;
+    const digest = await getDigest();
+    const r = await patchWithRetry(url, {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/json;odata=nometadata',
+        'Content-Type': 'application/json',
+        'X-RequestDigest': digest,
+        'IF-MATCH': '*'
+      },
+      body: JSON.stringify({ values: [[value]] })
+    }, `Update failed on ${addr} in ${source.name}`);
+    return r.ok;
+  }
+  // Fall back to Graph API
+  const url = `${apiBaseFor(source)}/range(address='${addr}')`;
+  const r = await patchWithRetry(url, { method:'PATCH', headers:headers(), body:JSON.stringify({ values:[[value]] }) }, `Update failed on ${addr} in ${source.name}`);
+  return r.ok;
+}
+
+async function safeUpdate(ticketId, updates, sourceName) {
+  const ticket = sourceName ? null : allTickets.find(t => t.id === String(ticketId));
+  const sName = sourceName || (ticket && ticket.source);
+  if (!sName) throw new Error(`Source not found for ticket #${ticketId}`);
+  const source = SOURCES.find(s => s.name === sName);
+  if (!source) throw new Error(`Source "${sName}" not found`);
+
+  // Re-fetch to find correct row number
+  const rows = await fetchRowsFrom(source);
+
+  // Always write to standardised columns: X(23)=Closure Notes, Y(24)=Status, Z(25)=Closure Date
+  // Hardcoded by position — do NOT look up by header name (old duplicate headers still exist in sheets)
+  const writeColMap = {
+    [COL.closureNotes]: 23,  // Column X
+    [COL.status]:       24,  // Column Y
+    [COL.closureDate]:  25,  // Column Z
+  };
+  console.log(`[${source.name}] WRITE → X(23)=Notes Y(24)=Status Z(25)=Date`);
+
+  let excelRowNumber = -1;
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][COL.id] || '').trim() === String(ticketId).trim()) { excelRowNumber = i + 1; break; }
+  }
+  if (excelRowNumber === -1) throw new Error(`Ticket #${ticketId} not found in ${source.name}`);
+
+  for (const [col, val] of Object.entries(updates)) {
+    const resolvedCol = writeColMap[parseInt(col)] !== undefined ? writeColMap[parseInt(col)] : parseInt(col);
+    await updateCell(source, excelRowNumber, resolvedCol, val);
+  }
+  return excelRowNumber;
+}
+
+function colToLetter(n) {
+  let s = ''; n = n + 1;
+  while (n > 0) { n--; s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n / 26); }
+  return s;
+}
+// Check if we have SharePoint session access
+async function ensureToken() {
+  try {
+    const r = await fetch(`${SP_SITE}/_api/web/title`, {
+      credentials: 'include',
+      headers: { 'Accept': 'application/json;odata=nometadata' }
+    });
+    if (r.ok) return true;
+    if (r.status === 401 || r.status === 403) return false;
+    return false;
+  } catch(e) { return false; }
+}
+
+// ─── DATA PARSING ─────────────────────────────────────────────────────────────
+function parseTickets(rows, sourceName) {
+  if (!rows.length) return [];
+  const header = rows[0];
+
+  // Find column indices dynamically by header name
+  const fc = (name) => header.findIndex(h => String(h||'').toLowerCase().includes(name.toLowerCase()));
+  const colPriority  = fc('priority') !== -1 ? fc('priority') : COL.priority;
+  const colMode      = fc('mode of approach') !== -1 ? fc('mode of approach') : COL.mode;
+  const colFoodCourt = fc('for which fc') !== -1 ? fc('for which fc') : fc('food court') !== -1 ? fc('food court') : COL.foodCourt;
+  const colOrg       = fc('organisation id or name') !== -1 ? fc('organisation id or name') : fc('organisation id') !== -1 ? fc('organisation id') : COL.orgId;
+  const colPOC       = fc('request raised across') !== -1 ? fc('request raised across') : COL.requestAcross;
+  const colDesc      = fc('description of issue') !== -1 ? fc('description of issue') : fc('description') !== -1 ? fc('description') : COL.description;
+  // Read from standardised columns: X(23)=Closure Notes, Y(24)=Status, Z(25)=Closure Date
+  // Hardcoded by position to match the write side — old duplicate headers must be ignored
+  const dynClosure = 23;  // Column X
+  const dynStatus  = 24;  // Column Y
+  const dynCloseDt = 25;  // Column Z
+
+  const tickets = [];
+  for (let i = 1; i < rows.length; i++) {
+    const r = [...(rows[i] || [])];
+    while (r.length < 26) r.push(''); // pad to Z so indices 23/24/25 are always defined
+    if (!r[COL.id] || r[COL.id] === '#' || r[COL.id] === 'Internal') continue;
+    const id = String(r[COL.id] || '').trim();
+    if (!id || isNaN(parseInt(id))) continue;
+    tickets.push({
+      rowIdx:        i,
+      source:        sourceName,
+      uid:           sourceName + '::' + id,
+      id:            id,
+      startTime:     r[COL.startTime]  || '',
+      email:         r[COL.email]      || '',
+      name:          r[COL.name]       || '',
+      contact:       r[COL.contact]    || '',
+      org:           colOrg  >= 0 ? (r[colOrg]  || '') : '',
+      requestAcross: colPOC  >= 0 ? (r[colPOC]  || '') : '',
+      foodCourt:     colFoodCourt >= 0 ? (r[colFoodCourt] || '') : '',
+      mode:          colMode >= 0 ? (r[colMode] || '') : '',
+      priority:      colPriority >= 0 ? (r[colPriority] || '') : '',
+      description:   colDesc >= 0 ? (r[colDesc] || '') : '',
+      comments:      r[COL.comments]   || '',
+      closureNotes:  r[dynClosure]  || '',
+      status:        String(r[dynStatus] ?? '').trim() || '',
+      closureDate:   r[dynCloseDt]  || '',
+    });
+  }
+  return tickets;
+}
+
+function priorityShort(p) {
+  if (!p) return '—';
+  const u = String(p).toUpperCase().replace(/[\s\-_]/g, '');
+  if (u.includes('P1') || u.startsWith('1') || u.includes('HIGH') || u.includes('CRITICAL')) return 'P1';
+  if (u.includes('P2') || u.startsWith('2') || u.includes('MEDIUM') || u.includes('MED')) return 'P2';
+  if (u.includes('P3') || u.startsWith('3') || u.includes('LOW')) return 'P3';
+  return p; // show original value if unrecognised
+}
+
+function priorityClass(p) {
+  const s = priorityShort(p);
+  if (s === 'P1') return 'bdg-p1';
+  if (s === 'P2') return 'bdg-p2';
+  if (s === 'P3') return 'bdg-p3';
+  return 'bdg-p3';
+}
+
+function statusClass(s) {
+  const sl = String(s || '').toLowerCase().trim();
+  if (sl === 'closed' || sl === 'completed') return 'bdg-closed';
+  if (sl.includes('progress') || sl === 'wip') return 'bdg-wip';
+  if (sl.includes('awaiting') || sl.includes('await')) return 'bdg-p3';
+  if (!sl || sl === 'open') return 'bdg-open';
+  return 'bdg-open';
+}
+
+function modeShort(m) {
+  if (!m) return '—';
+  return m.replace('/ Platform Concerns','').replace('Related','').replace('/ Cashier Creation','').replace('/ Deletion','').replace("Concern's than Above",'Other').trim();
+}
+
+function parseDateTime(d) {
+  if (!d) return null;
+  // Excel serial number (days since 30 Dec 1899)
+  // Convert to local wall-clock time — NOT UTC — so IST (+5:30) doesn't shift the date
+  if (typeof d === 'number' && d > 1000) {
+    const totalSeconds = Math.round((d - 25569) * 86400);
+    const days    = Math.floor(d - 25569);
+    const fracDay = d - 25569 - days;
+    const totalMs = days * 86400000 + Math.round(fracDay * 86400000);
+    // Build via UTC then extract components, reconstruct as local
+    const utc = new Date(totalMs);
+    return new Date(utc.getUTCFullYear(), utc.getUTCMonth(), utc.getUTCDate(),
+                    utc.getUTCHours(), utc.getUTCMinutes(), utc.getUTCSeconds());
+  }
+  const s = String(d).trim();
+  if (!s) return null;
+
+  // M/D/YYYY H:MM:SS AM/PM  (Microsoft Forms format — most common)
+  const slash = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?)?/i);
+  if (slash) {
+    let hr = slash[4] ? parseInt(slash[4]) : 0;
+    const mn = slash[5] ? parseInt(slash[5]) : 0;
+    const sc = slash[6] ? parseInt(slash[6]) : 0;
+    const ampm = slash[7] ? slash[7].toUpperCase() : null;
+    if (ampm === 'PM' && hr < 12) hr += 12;
+    if (ampm === 'AM' && hr === 12) hr = 0;
+    return new Date(parseInt(slash[3]), parseInt(slash[1]) - 1, parseInt(slash[2]), hr, mn, sc);
+  }
+
+  // DD Mon YYYY HH:MM
+  const monStr = s.match(/^(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/i);
+  if (monStr) {
+    const months = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+    return new Date(parseInt(monStr[3]), months[monStr[2].toLowerCase()], parseInt(monStr[1]),
+                    monStr[4] ? parseInt(monStr[4]) : 0, monStr[5] ? parseInt(monStr[5]) : 0);
+  }
+
+  // ISO 8601 with timezone (e.g. from Microsoft Lists) — genuinely UTC, JS handles correctly
+  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) return new Date(s);
+
+  return null;
+}
+
+// Format date only: "02 Jun 2026"
+function fmtDate(d) {
+  if (!d && d !== 0) return '—';
+  const s = String(d).trim();
+  if (!s || s === '—') return '—';
+  const dt = parseDateTime(d);
+  if (!dt || isNaN(dt.getTime())) return s; // return raw if unparseable
+  return dt.toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'});
+}
+
+// Format date + time: "02 Jun 2026 20:12"
+function fmtDateTime(d) {
+  if (!d && d !== 0) return '—';
+  const s = String(d).trim();
+  if (!s || s === '—') return '—';
+  const dt = parseDateTime(d);
+  if (!dt || isNaN(dt.getTime())) return s;
+  const datePart = dt.toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'});
+  const hasTime = /\d{1,2}:\d{2}/.test(s) || (typeof d === 'number' && d % 1 !== 0);
+  if (!hasTime) return datePart;
+  const h = String(dt.getHours()).padStart(2,'0');
+  const m = String(dt.getMinutes()).padStart(2,'0');
+  return datePart + ' ' + h + ':' + m;
+}
+
+// ISO date formatter for Microsoft Lists / Tech Requirements dates
+function fmtTRDate(val) {
+  if (!val || val === '') return '—';
+  return fmtDate(val);
+}
+
+
+// ─── LOAD ─────────────────────────────────────────────────────────────────────
+async function loadTickets() {
+  // Skip token check when running inside SharePoint — uses browser session
+  // All sources on SharePoint — token only needed for external/local access
+  if (!IS_SHAREPOINT && !CONFIG.token) { renderConfig(); return; }
+  showLoading();
+  try {
+    const { merged, errors } = await fetchAllRows();
+    if (merged.length === 0) {
+      const errDetail = errors.length ? errors.join(' | ') : 'All sources failed';
+      renderError('No data loaded. ' + errDetail + '<br><br>Token may have expired — paste a fresh one from Graph Explorer.');
+      showToast('⚠ No data loaded — check token', 'error');
+      return;
+    }
+    allTickets = merged.flatMap(({ source, rows }) => parseTickets(rows, source.name));
+    applyGlobalRange(); // apply current range selection to freshly loaded data
+    const syncMsg = errors.length
+      ? `Loaded from ${merged.length}/5 support files — ${errors.length} failed`
+      : `Synced ${allTickets.length} tickets from 5 support files`;
+    document.getElementById('last-sync').textContent = syncMsg + ' · ' + new Date().toLocaleTimeString();
+    renderCurrentTab();
+    showToast(`✓ ${allTickets.length} tickets loaded`, 'success');
+
+    if (errors.length) errors.forEach(e => showToast(`⚠ ${e}`, 'error'));
+  } catch(e) {
+    renderError(e.message);
+    showToast('Failed: ' + e.message, 'error');
+  }
+}
+// ─── RENDERING ────────────────────────────────────────────────────────────────
+function showLoading() {
+  document.getElementById('main-area').innerHTML = `
+    <div class="loading">
+      <div class="spinner"></div>
+      <p id="load-msg" style="margin-bottom:8px">Connecting to SharePoint…</p>
+      <div style="width:240px;height:4px;background:var(--bd);border-radius:2px;margin:8px auto">
+        <div id="load-bar" style="height:4px;background:var(--blue);border-radius:2px;width:0%;transition:width .4s ease"></div>
+      </div>
+      <p id="load-sub" style="font-size:10px;color:var(--t3);margin-top:6px;font-family:'JetBrains Mono',monospace;min-height:16px"></p>
+    </div>`;
+}
+
+function updateLoadProgress(done, total, sourceName) {
+  const bar = document.getElementById('load-bar');
+  const msg = document.getElementById('load-msg');
+  const sub = document.getElementById('load-sub');
+  if (bar) bar.style.width = Math.round((done / total) * 100) + '%';
+  if (msg) msg.textContent = done === total ? 'Processing tickets…' : 'Loading ' + done + '/' + total + ' sources…';
+  if (sub && sourceName) sub.textContent = '✓ ' + sourceName;
+}
+
+function renderError(msg) {
+  document.getElementById('main-area').innerHTML = `
+    <div class="empty" style="max-width:600px;margin:0 auto">
+      <p style="color:var(--red);margin-bottom:12px;font-size:14px;font-weight:500">⚠ Connection Error</p>
+      <p style="font-size:12px;color:var(--t2);line-height:1.7">${msg}</p>
+      <br>
+      <button class="btn btn-primary btn-sm" onclick="openConfig()" style="margin-right:8px">⚙ Update Token</button>
+      <button class="btn btn-ghost btn-sm" onclick="loadTickets()">↻ Retry</button>
+    </div>`;
+}
+
+function renderConfig() {
+  // All sources on SharePoint — open from SharePoint for automatic auth
+  document.getElementById('main-area').innerHTML = `
+    <div class="config-panel" style="text-align:center">
+      <div style="font-size:32px;margin-bottom:12px">🔒</div>
+      <h2>Token Required</h2>
+      <p>You're running this dashboard outside SharePoint.<br>
+      For automatic authentication, open this file from<br>
+      <strong>ClientServicingTeam SharePoint</strong> instead.</p>
+      <p style="margin-top:12px;font-size:12px;color:var(--t3)">Or paste a Graph API Bearer token below for local access:</p>
+      <div class="form-group" style="margin-top:16px;text-align:left">
+        <label>Bearer Token</label>
+        <input type="password" id="cfg-token" placeholder="Paste token from Graph Explorer..." style="background:var(--s2);border:1.5px solid var(--bd);border-radius:8px;padding:9px 12px;color:var(--t1);font-size:13px;width:100%;outline:none;font-family:'Plus Jakarta Sans',sans-serif;">
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="CONFIG.token=document.getElementById('cfg-token').value.trim();try{localStorage.setItem('sq_cfg',JSON.stringify(CONFIG));}catch(e){}loadTickets()">Connect</button>
+    </div>`;
+}
+
+function saveInlineToken() {
+  const t = document.getElementById('inline-token').value.trim();
+  if (!t) { showToast('Please paste an access token', 'error'); return; }
+  CONFIG.token = t;
+  try { localStorage.setItem('sq_cfg', JSON.stringify({ token: t })); } catch(e){}
+  loadTickets();
+}
+
+// ─── TASK TRACKER (Microsoft List) ────────────────────────────────────────────
+
+
+
+
+async 
+
+
+// ─── TECH REQUIREMENTS ────────────────────────────────────────────────────────
+
+
+async 
+function trStatusClass(s) {
+  const sl = String(s||'').toLowerCase();
+  if (sl.includes('complet') || sl.includes('done') || sl.includes('closed') || sl.includes('deploy')) return 'bdg-closed';
+  if (sl.includes('progress') || sl.includes('development') || sl.includes('wip')) return 'bdg-wip';
+  if (sl.includes('hold') || sl.includes('pending')) return 'bdg-p3';
+  return 'bdg-open';
+}
+
+async 
+
+function renderCurrentTab() {
+  if (activeTab === 'analytics') { renderAnalytics(); return; }
+  if (activeTab === 'backlog')   { renderBacklog(); return; }
+  if (activeTab === 'poc')       { renderPOCPerformance(); return; }
+  if (activeTab === 'orgview')   { renderOrgView(); return; }
+  if (activeTab === 'repeat')    { renderRepeatIssues(); return; }
+  renderTicketList('all');
+}
+
+function getFilteredTickets(filter='all') {
+  let tickets = getTickets();
+  const v = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+
+  const search    = v('ticket-search').toLowerCase();
+  const idF       = v('f-id');
+  const sourceF   = v('f-source');
+  const nameF     = v('f-name');
+  const pocF      = v('f-poc');
+  const orgF      = v('f-org');
+  const fcF       = v('f-fc');
+  const modeF     = v('f-mode');
+  const priorityF = v('f-priority');
+  const raisedF   = v('f-raised');
+  const closedF   = v('f-closed');
+  const descF     = v('f-desc').toLowerCase();
+  const statusF   = v('f-status');
+  const notesF    = v('f-notes').toLowerCase();
+
+  if (filter === 'open') tickets = tickets.filter(t => {
+    const s = String(t.status||'').toLowerCase();
+    return s !== 'closed' && s !== 'completed';
+  });
+
+  if (idF)       tickets = tickets.filter(t => t.id === idF);
+  if (sourceF)   tickets = tickets.filter(t => t.source === sourceF);
+  if (nameF)     tickets = tickets.filter(t => t.name === nameF);
+  if (pocF)      tickets = tickets.filter(t => t.requestAcross === pocF);
+  if (orgF)      tickets = tickets.filter(t => t.org === orgF);
+  if (fcF)       tickets = tickets.filter(t => t.foodCourt === fcF);
+  if (modeF)     tickets = tickets.filter(t => modeShort(t.mode) === modeF);
+  if (priorityF) tickets = tickets.filter(t => (t.priority||'').includes(priorityF));
+  if (raisedF)   tickets = tickets.filter(t => fmtDate(t.startTime) === raisedF);
+  if (closedF)   tickets = tickets.filter(t => fmtDate(t.closureDate) === closedF);
+  if (descF)     tickets = tickets.filter(t => (t.description||'').toLowerCase().includes(descF));
+  if (notesF)    tickets = tickets.filter(t => (t.closureNotes||'').toLowerCase().includes(notesF));
+  if (statusF)   tickets = tickets.filter(t => (t.status||'Open') === statusF);
+  if (search)    tickets = tickets.filter(t =>
+    t.id.includes(search) || t.name.toLowerCase().includes(search) ||
+    t.description.toLowerCase().includes(search) || t.org.toLowerCase().includes(search) ||
+    t.foodCourt.toLowerCase().includes(search) || t.mode.toLowerCase().includes(search) ||
+    (t.source||'').toLowerCase().includes(search)
+  );
+
+  // Latest first — sort by Raised Date (Start time) descending.
+  // Tickets without a parseable date fall to the bottom.
+  tickets = [...tickets].sort((a, b) => {
+    const da = parseDateTime(a.startTime);
+    const db = parseDateTime(b.startTime);
+    if (da && db) return db - da;
+    if (da) return -1;
+    if (db) return 1;
+    // tie-break by numeric ID if dates missing
+    return (parseInt(b.id)||0) - (parseInt(a.id)||0);
+  });
+
+  return tickets;
+}
+
+
+function renderTicketList(filter='all') {
+  _currentListFilter = filter;
+  let tickets = getFilteredTickets(filter);
+
+  const v = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+
+  const search    = v('ticket-search').toLowerCase();
+  const idF       = v('f-id');
+  const sourceF   = v('f-source');
+  const nameF     = v('f-name');
+  const pocF      = v('f-poc');
+  const orgF      = v('f-org');
+  const fcF       = v('f-fc');
+  const modeF     = v('f-mode');
+  const priorityF = v('f-priority');
+  const raisedF   = v('f-raised');
+  const closedF   = v('f-closed');
+  const descF     = v('f-desc').toLowerCase();
+  const statusF   = v('f-status');
+  const notesF    = v('f-notes').toLowerCase();
+
+  const stats = calcStats(getTickets());
+  const uIds      = [...new Set(getTickets().map(t=>t.id).filter(Boolean))].sort((a,b)=>parseInt(a)-parseInt(b));
+  const uSources  = [...new Set(getTickets().map(t=>t.source).filter(Boolean))].sort();
+  const uNames    = [...new Set(getTickets().map(t=>t.name).filter(Boolean))].sort();
+  const uOrgs     = [...new Set(getTickets().map(t=>t.org).filter(Boolean))].sort();
+  const uFcs      = [...new Set(getTickets().map(t=>t.foodCourt).filter(Boolean))].sort();
+  const uModes    = [...new Set(getTickets().map(t=>modeShort(t.mode)).filter(Boolean))].sort();
+  const uPocs     = [...new Set(getTickets().map(t=>t.requestAcross).filter(Boolean))].sort();
+  const uStatuses = [...new Set(getTickets().map(t=>t.status||'Open').filter(Boolean))].sort();
+  const uRaised   = [...new Set(getTickets().map(t=>fmtDate(t.startTime)).filter(d=>d&&d!=='—'))].sort();
+  const uClosed   = [...new Set(getTickets().map(t=>fmtDate(t.closureDate)).filter(d=>d&&d!=='—'))].sort();
+
+  const sel = (id, opts, cur) => `<select class="col-filter" id="${id}" onchange="applyFilters()">
+    <option value="">All</option>
+    ${opts.map(o=>`<option value="${esc(o)}" ${cur===o?'selected':''}>${esc(o)}</option>`).join('')}
+  </select>`;
+
+  document.getElementById('main-area').innerHTML = `
+    <div class="stats-row">
+      <div class="stat bl"><div class="stat-l">Total</div><div class="stat-v">${stats.total}</div></div>
+      <div class="stat gr"><div class="stat-l">Closed</div><div class="stat-v">${stats.closed}</div><div class="stat-s">${stats.closedPct}% rate</div></div>
+      <div class="stat am"><div class="stat-l">Open / WIP</div><div class="stat-v">${stats.open}</div></div>
+      <div class="stat re"><div class="stat-l">P1 Tickets</div><div class="stat-v">${stats.p1}</div><div class="stat-s">High priority</div></div>
+      <div class="stat am"><div class="stat-l">P2 Tickets</div><div class="stat-v">${stats.p2}</div><div class="stat-s">Medium priority</div></div>
+      <div class="stat bl"><div class="stat-l">P3 Tickets</div><div class="stat-v">${stats.p3}</div><div class="stat-s">Low priority</div></div>
+      <div class="stat pu"><div class="stat-l">Avg Resolution</div><div class="stat-v" style="font-size:${stats.avgRes==='—'?'22':'18'}px">${stats.avgRes}${stats.avgRes!=='—'?'d':''}</div><div class="stat-s">Showing ${tickets.length} of ${stats.total}</div></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;">
+      <input class="search-box" id="ticket-search" placeholder="🔍 Search across all fields…" value="${search}" oninput="applyFilters()" style="flex:1;min-width:200px;">
+      <button class="btn btn-ghost btn-sm" onclick="clearAllFilters()" style="white-space:nowrap;font-size:11px;">✕ Clear filters</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr class="thead-labels">
+            <th>ID</th><th>Source</th><th>Raised By</th><th>Tech POC</th><th>Organisation</th><th>Food Court</th>
+            <th>Mode</th><th>Priority</th><th>Raised Date</th><th>Closed Date</th>
+            <th>Description</th><th>Closure Notes</th><th>Status</th><th style="text-align:center">Action</th>
+          </tr>
+          <tr class="thead-filters">
+            <td>${sel('f-id', uIds, idF)}</td>
+            <td>${sel('f-source', uSources, sourceF)}</td>
+            <td>${sel('f-name', uNames, nameF)}</td>
+            <td>${sel('f-poc', uPocs, pocF)}</td>
+            <td>${sel('f-org', uOrgs, orgF)}</td>
+            <td>${sel('f-fc', uFcs, fcF)}</td>
+            <td>${sel('f-mode', uModes, modeF)}</td>
+            <td><select class="col-filter" id="f-priority" onchange="applyFilters()">
+              <option value="">All</option>
+              <option value="P1" ${priorityF==='P1'?'selected':''}>P1</option>
+              <option value="P2" ${priorityF==='P2'?'selected':''}>P2</option>
+              <option value="P3" ${priorityF==='P3'?'selected':''}>P3</option>
+            </select></td>
+            <td>${sel('f-raised', uRaised, raisedF)}</td>
+            <td>${sel('f-closed', uClosed, closedF)}</td>
+            <td><input class="col-filter" id="f-desc" placeholder="Filter…" value="${descF}" oninput="applyFilters()" style="width:100%"></td>
+            <td><input class="col-filter" id="f-notes" placeholder="Filter…" value="${notesF}" oninput="applyFilters()" style="width:100%"></td>
+            <td>${sel('f-status', uStatuses, statusF)}</td>
+            <td></td>
+          </tr>
+        </thead>
+        <tbody id="ticket-tbody">
+          ${tickets.length === 0
+            ? `<tr><td colspan="14"><div class="empty"><p>No tickets match your filters</p></div></td></tr>`
+            : tickets.map(t => renderRow(t)).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function renderRow(t) {
+  const isClosed = ['closed','completed'].includes(String(t.status||'').toLowerCase());
+  const isWIP = String(t.status||'').toLowerCase().includes('progress') || String(t.status||'').toLowerCase() === 'wip';
+  const raisedDate = fmtDateTime(t.startTime);
+  const closedDate = isClosed ? fmtDateTime(t.closureDate) : '—';
+
+  let actionCell = '';
+  if (isClosed) {
+    actionCell = `<span class="closed-label">✓ Closed</span>`;
+  } else {
+    actionCell = `<div class="action-btns">
+      ${isWIP ? `<span class="wip-label">● WIP</span>` : `<button class="wip-btn" onclick="markWIP(${JSON.stringify(t).replace(/"/g,'&quot;')})">Mark WIP</button>`}
+      <button class="close-btn" onclick="openCloseModal(${JSON.stringify(t).replace(/"/g,'&quot;')})">✓ Mark Closed</button>
+    </div>`;
+  }
+
+  return `<tr id="row-${t.uid||t.id}">
+    <td class="cell-id">#${esc(t.id)}</td>
+    <td style="max-width:90px;overflow:hidden"><span style="display:inline-block;background:var(--blue-lt);border:1px solid var(--blue-mid);border-radius:4px;font-size:9.5px;padding:2px 7px;color:var(--blue);white-space:nowrap;font-family:'JetBrains Mono',monospace;font-weight:500;max-width:86px;overflow:hidden;text-overflow:ellipsis" title="${esc(t.source||'—')}">${esc((t.source||'—').replace('Education Vertical','Edu Vertical').replace('Pan India','Pan India'))}</span></td>
+    <td>
+      <div class="cell-name has-tooltip" data-tip="${esc(t.name)}\n${esc(t.contact)}">${esc(t.name)}</div>
+      <div style="font-size:10px;color:var(--t3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.contact)}</div>
+    </td>
+    <td class="cell-org has-tooltip" data-tip="${esc(t.requestAcross)}" style="font-weight:500;color:var(--t1)">${esc(t.requestAcross)||'—'}</td>
+    <td class="cell-org has-tooltip" data-tip="${esc(t.org)}">${esc(t.org)}</td>
+    <td class="cell-org has-tooltip" style="font-size:11px" data-tip="${esc(t.foodCourt)}">${esc(t.foodCourt)}</td>
+    <td class="cell-org has-tooltip" style="font-size:11px" data-tip="${esc(t.mode)}">${esc(modeShort(t.mode))}</td>
+    <td style="text-align:center"><span class="bdg ${priorityClass(t.priority)}">${priorityShort(t.priority)}</span></td>
+    <td class="col-date" style="white-space:nowrap">${(() => {
+      const parts = raisedDate.split(' ');
+      if (parts.length >= 4) {
+        const time = parts[parts.length-1];
+        const date = parts.slice(0,-1).join(' ');
+        return date + '<br><span style="font-size:9.5px;color:var(--t3);opacity:.85">' + time + '</span>';
+      }
+      return raisedDate;
+    })()}</td>
+    <td class="col-date" style="color:${isClosed?'var(--green)':'var(--t3)'};white-space:nowrap">${(() => {
+      const parts = closedDate.split(' ');
+      if (closedDate !== '—' && parts.length >= 4) {
+        const time = parts[parts.length-1];
+        const date = parts.slice(0,-1).join(' ');
+        return date + '<br><span style=\'font-size:9.5px;opacity:.8\'>' + time + '</span>';
+      }
+      return closedDate;
+    })()}</td>
+    <td class="cell-desc" title="${esc(t.description)}">${esc(t.description)}</td>
+    <td class="cell-desc has-tooltip" data-tip="${esc(t.closureNotes)}" style="color:${t.closureNotes?'var(--green)':'var(--t3)'};font-size:11px">${t.closureNotes ? esc(t.closureNotes).slice(0,40)+(t.closureNotes.length>40?'…':'') : '—'}</td>
+    <td style="text-align:center"><span class="bdg ${statusClass(t.status)}">${esc(t.status||'Open')}</span></td>
+    <td class="action-cell">${actionCell}</td>
+  </tr>`;
+}
+
+// ─── GLOBAL DATE RANGE FILTER ─────────────────────────────────────────────────
+
+function applyGlobalRange() {
+  const sel = document.getElementById('global-range')?.value || 'all';
+  const customWrap = document.getElementById('custom-range');
+
+  // Show/hide custom date inputs
+  if (customWrap) customWrap.style.display = sel === 'custom' ? 'flex' : 'none';
+
+  const now = new Date();
+  let fromDate = null, toDate = null;
+
+  if (sel === 'all') {
+    filteredTickets = [...allTickets];
+  } else if (sel === 'custom') {
+    const fromVal = document.getElementById('range-from')?.value;
+    const toVal   = document.getElementById('range-to')?.value;
+    fromDate = fromVal ? new Date(fromVal) : null;
+    toDate   = toVal   ? new Date(toVal + 'T23:59:59') : null;
+    filteredTickets = allTickets.filter(t => {
+      const dt = parseDateTime(t.startTime);
+      if (!dt) return false;
+      if (fromDate && dt < fromDate) return false;
+      if (toDate   && dt > toDate)   return false;
+      return true;
+    });
+  } else {
+    const days = parseInt(sel);
+    fromDate = new Date(now - days * 86400000);
+    filteredTickets = allTickets.filter(t => {
+      const dt = parseDateTime(t.startTime);
+      return dt && dt >= fromDate;
+    });
+  }
+
+  // Update count badge
+  const countEl = document.getElementById('range-count');
+  if (countEl) {
+    countEl.textContent = filteredTickets.length < allTickets.length
+      ? `${filteredTickets.length} of ${allTickets.length}`
+      : '';
+  }
+
+  renderCurrentTab();
+}
+
+function applyFilters() {
+  // Only re-render the table body so the search box & filter inputs keep focus.
+  // If we're not on the ticket list tab, fall back to a full re-render.
+  const tbody = document.getElementById('ticket-tbody');
+  if (!tbody) { renderCurrentTab(); return; }
+  const tickets = getFilteredTickets(_currentListFilter);
+  tbody.innerHTML = tickets.length === 0
+    ? `<tr><td colspan="14"><div class="empty"><p>No tickets match your filters</p></div></td></tr>`
+    : tickets.map(t => renderRow(t)).join('');
+  // Update the visible result count if present
+  const cnt = document.getElementById('result-count');
+  if (cnt) cnt.textContent = tickets.length;
+}
+
+function getTickets() {
+  return filteredTickets.length > 0 || allTickets.length === 0 ? filteredTickets : allTickets;
+}
+
+function clearAllFilters() {
+  ['ticket-search','f-id','f-source','f-name','f-poc','f-org','f-fc','f-mode','f-priority',
+   'f-raised','f-closed','f-desc','f-notes','f-status'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  renderCurrentTab();
+}
+
+// ─── POC PERFORMANCE ──────────────────────────────────────────────────────────
+function renderPOCPerformance() {
+  // Build POC stats
+  const pocMap = {};
+  getTickets().forEach(t => {
+    const poc = t.requestAcross || 'Unassigned';
+    if (!pocMap[poc]) pocMap[poc] = { tickets:[], segments: new Set() };
+    pocMap[poc].tickets.push(t);
+    if (t.org) pocMap[poc].segments.add(t.org.split(' ')[0]); // short segment label
+  });
+
+  // Compute per-POC stats
+  const rows = Object.entries(pocMap).map(([poc, d]) => {
+    const tickets = d.tickets;
+    const total   = tickets.length;
+    const closed  = tickets.filter(t => ['closed','completed'].includes(String(t.status||'').toLowerCase()));
+    const open    = total - closed.length;
+    const rate    = total ? Math.round(closed.length / total * 100) : 0;
+
+    // Avg resolution days (only for closed tickets with both dates)
+    const resDays = closed.map(t => {
+      const s = parseDateTime(t.startTime);
+      const e = parseDateTime(t.closureDate);
+      if (!s || !e || e < s) return null;
+      return (e - s) / 86400000;
+    }).filter(x => x !== null);
+    const avgRes = resDays.length ? (resDays.reduce((a,b)=>a+b,0)/resDays.length).toFixed(1) : '—';
+
+    const p1 = tickets.filter(t=>(t.priority||'').includes('P1')).length;
+    const p2 = tickets.filter(t=>(t.priority||'').includes('P2')).length;
+    const p3 = tickets.filter(t=>(t.priority||'').includes('P3')).length;
+
+    // SLA breach count
+    const breached = tickets.filter(t => { const s = getSLAStatus(t); return s && s.breached; }).length;
+
+    // Segments — unique orgs (top 3)
+    const segs = [...new Set(tickets.map(t => t.org).filter(Boolean))];
+
+    return { poc, total, closed: closed.length, open, rate, avgRes, p1, p2, p3, breached, segs };
+  }).sort((a,b) => b.total - a.total);
+
+  // Summary KPIs
+  const totalAll   = getTickets().length;
+  const closedAll  = getTickets().filter(t=>['closed','completed'].includes(String(t.status||'').toLowerCase())).length;
+  const bestRate   = [...rows].sort((a,b)=>b.rate-a.rate)[0];
+  const mostBacklog= [...rows].sort((a,b)=>b.open-a.open)[0];
+
+  // Chart data
+  const gc = 'rgba(15,22,41,0.07)', tc = '#4a5778';
+
+  document.getElementById('main-area').innerHTML = `
+    <div class="stats-row" style="margin-bottom:20px">
+      <div class="stat bl"><div class="stat-l">Total POCs</div><div class="stat-v">${rows.length}</div></div>
+      <div class="stat gr"><div class="stat-l">Best Closure Rate</div><div class="stat-v">${bestRate?.rate}%</div><div class="stat-s">${esc(bestRate?.poc)}</div></div>
+      <div class="stat am"><div class="stat-l">Most Backlog</div><div class="stat-v">${mostBacklog?.open}</div><div class="stat-s">${esc(mostBacklog?.poc)}</div></div>
+      <div class="stat re"><div class="stat-l">Overall Closure</div><div class="stat-v">${totalAll?Math.round(closedAll/totalAll*100):0}%</div><div class="stat-s">${closedAll} of ${totalAll}</div></div>
+    </div>
+
+    <!-- Charts row -->
+    <div class="charts-grid" style="margin-bottom:16px">
+      <div class="chart-card">
+        <div class="chart-title">Ticket volume trend by POC</div>
+        <div style="font-size:11px;color:var(--t3);margin-bottom:8px">Last 30 days vs prior 30 days</div>
+        <div class="cw" style="height:260px"><canvas id="ch-poc-trend"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Ticket volume by POC</div>
+        <div class="cw" style="height:260px"><canvas id="ch-poc-vol"></canvas></div>
+      </div>
+    </div>
+
+    <!-- POC Performance Table -->
+    <div class="data-wrap">
+      <table>
+        <thead>
+          <tr class="thead-labels">
+            <th>Tech POC</th>
+            <th>Segments</th>
+            <th>Total</th>
+            <th>Closed</th>
+            <th>Open</th>
+            <th>Closure Rate</th>
+            <th>Avg Res. (days)</th>
+            <th>SLA Breached</th>
+            <th>P1</th>
+            <th>P2</th>
+            <th>P3</th>
+            <th style="text-align:center">Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(r => {
+            const rateColor = r.rate >= 90 ? 'var(--green)' : r.rate >= 75 ? 'var(--amber)' : 'var(--red)';
+            const rateBdg   = r.rate >= 90 ? 'bg' : r.rate >= 75 ? 'ba' : 'br';
+            const avgColor  = r.avgRes === '—' ? 'var(--t3)' : parseFloat(r.avgRes) <= 2 ? 'var(--green)' : parseFloat(r.avgRes) <= 7 ? 'var(--amber)' : 'var(--red)';
+            const bar = `<div style="display:flex;align-items:center;gap:8px">
+              <div style="flex:1;background:rgba(255,255,255,0.06);border-radius:3px;height:5px;overflow:hidden">
+                <div style="width:${r.rate}%;height:100%;background:${rateColor};border-radius:3px"></div>
+              </div>
+              <span class="bdg ${rateBdg}" style="min-width:44px;text-align:center">${r.rate}%</span>
+            </div>`;
+            const segTags = r.segs.slice(0,3).map(s =>
+              `<span style="display:inline-block;background:var(--blue-lt);border:1px solid var(--blue-mid);border-radius:4px;font-size:9.5px;padding:1px 6px;margin:1px;color:var(--blue);white-space:nowrap;font-family:'JetBrains Mono',monospace">${esc(s.substring(0,15))}</span>`
+            ).join('') + (r.segs.length > 3 ? `<span style="font-size:10px;color:var(--t3)"> +${r.segs.length-3}</span>` : '');
+
+            return `<tr>
+              <td style="font-weight:600;color:var(--t1)">${esc(r.poc)}</td>
+              <td style="max-width:160px">${segTags}</td>
+              <td class="mono">${r.total}</td>
+              <td class="mono" style="color:var(--green)">${r.closed}</td>
+              <td class="mono" style="color:${r.open>0?'var(--amber)':'var(--t3)'}">${r.open}</td>
+              <td style="min-width:140px">${bar}</td>
+              <td class="mono" style="color:${avgColor}">${r.avgRes}${r.avgRes!=='—'?'d':''}</td>
+              <td class="mono" style="color:${r.breached>0?'var(--red)':'var(--green)'};font-weight:600">${r.breached}</td>
+              <td class="mono" style="color:var(--red)">${r.p1}</td>
+              <td class="mono" style="color:var(--amber)">${r.p2}</td>
+              <td class="mono" style="color:var(--blue)">${r.p3}</td>
+              <td style="text-align:center"><button class="btn btn-ghost btn-sm" style="font-size:11px;padding:4px 10px" onclick="showPOCDetail('${esc(r.poc)}')">View →</button></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+
+  // Ticket volume trend by POC — last 30 days vs prior 30 days
+  const now = new Date();
+  const d30 = new Date(now - 30 * 86400000);
+  const d60 = new Date(now - 60 * 86400000);
+  const pocTrend = rows.map(r => {
+    const recent = getTickets().filter(t => {
+      const dt = parseDateTime(t.startTime);
+      return t.requestAcross === r.poc && dt && dt >= d30;
+    }).length;
+    const prior = getTickets().filter(t => {
+      const dt = parseDateTime(t.startTime);
+      return t.requestAcross === r.poc && dt && dt >= d60 && dt < d30;
+    }).length;
+    return { poc: r.poc, recent, prior };
+  });
+
+  new Chart(document.getElementById('ch-poc-trend'), {
+    type: 'bar', indexAxis: 'y',
+    data: {
+      labels: pocTrend.map(r => r.poc),
+      datasets: [
+        { label: 'Last 30 days',  data: pocTrend.map(r => r.recent), backgroundColor: '#4f8ef7', borderRadius: 3 },
+        { label: 'Prior 30 days', data: pocTrend.map(r => r.prior),  backgroundColor: 'rgba(79,142,247,0.25)', borderRadius: 3 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, labels: { color: tc, font: { size: 11 }, boxWidth: 10 } },
+        tooltip: {
+          callbacks: {
+            afterBody: items => {
+              const idx = items[0]?.dataIndex;
+              if (idx === undefined) return [];
+              const diff = pocTrend[idx].recent - pocTrend[idx].prior;
+              return [diff > 0 ? `▲ +${diff} vs prior period` : diff < 0 ? `▼ ${diff} vs prior period` : '→ Same as prior period'];
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: { color: gc }, ticks: { color: tc, font: { size: 10 } } },
+        y: { grid: { display: false }, ticks: { color: tc, font: { size: 10 } } }
+      }
+    }
+  });
+
+  // Volume chart — stacked closed vs open
+  new Chart(document.getElementById('ch-poc-vol'), {
+    type: 'bar',
+    data: {
+      labels: rows.map(r => r.poc),
+      datasets: [
+        { label: 'Closed', data: rows.map(r => r.closed), backgroundColor: '#34c98b', borderRadius: 0 },
+        { label: 'Open',   data: rows.map(r => r.open),   backgroundColor: '#f05c6a', borderRadius: 0 }
+      ]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, labels: { color: tc, font: { size: 11 }, boxWidth: 10 } } },
+      scales: {
+        x: { stacked: true, grid: { color: gc }, ticks: { color: tc, font: { size: 10 } } },
+        y: { stacked: true, grid: { display: false }, ticks: { color: tc, font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+// ─── ORGANISATION VIEW ────────────────────────────────────────────────────────
+function renderOrgView() {
+  const gc = 'rgba(15,22,41,0.07)', tc = '#4a5778';
+
+  // Build org map
+  const orgMap = {};
+  getTickets().forEach(t => {
+    const org = t.org || 'Unknown';
+    if (!orgMap[org]) orgMap[org] = { total:0, closed:0, open:0, wip:0, p1:0, p2:0, p3:0, pocs:new Set(), modes:new Set(), tickets:[], slaBreached:0 };
+    const d = orgMap[org];
+    d.total++;
+    d.tickets.push(t);
+    const st = String(t.status||'').toLowerCase();
+    if (['closed','completed'].includes(st)) d.closed++;
+    else if (st.includes('progress')) { d.open++; d.wip++; }
+    else d.open++;
+    const ps = priorityShort(t.priority);
+    if (ps === 'P1') d.p1++;
+    else if (ps === 'P2') d.p2++;
+    else if (ps === 'P3') d.p3++;
+    else d.p3++; // unclassified counts as P3 so chart always has data
+    if (t.requestAcross) d.pocs.add(t.requestAcross);
+    if (t.mode) d.modes.add(modeShort(t.mode));
+    const sla = getSLAStatus(t);
+    if (sla && sla.breached && !['closed','completed'].includes(st)) d.slaBreached++;
+  });
+
+  const orgList = Object.entries(orgMap).sort((a,b) => b[1].total - a[1].total);
+
+  // Top 8 orgs by total for charts
+  // Ticket Volume Trend — last 30 days vs prior 30 days per org
+  const now = new Date();
+  const d30 = new Date(now - 30 * 86400000);
+  const d60 = new Date(now - 60 * 86400000);
+
+  // Use allTickets (not filtered) so the prior-30-day window is never empty
+  // regardless of the global date range selector
+  const trendSource = allTickets.length ? allTickets : getTickets();
+  const trendMap = {};
+  trendSource.forEach(t => {
+    const org = t.org || 'Unknown';
+    const dt = parseDateTime(t.startTime);
+    if (!dt) return;
+    if (!trendMap[org]) trendMap[org] = { recent: 0, prior: 0 };
+    if (dt >= d30) trendMap[org].recent++;
+    else if (dt >= d60) trendMap[org].prior++;
+  });
+
+  // Top 8 orgs by recent volume — fall back to top by prior if recent is all-zero
+  let top8trend = Object.entries(trendMap)
+    .sort((a,b) => (b[1].recent + b[1].prior) - (a[1].recent + a[1].prior))
+    .slice(0, 8);
+  // If recent data is completely absent, sort by prior instead (handles future-date issues)
+  if (top8trend.every(([,d]) => d.recent === 0)) {
+    top8trend = top8trend.sort((a,b) => b[1].prior - a[1].prior);
+  }
+
+  // Priority mix for top 10 by total
+  const top6pri = orgList.slice(0, 10);
+
+  document.getElementById('main-area').innerHTML = `
+    <!-- Charts -->
+    <div class="charts-grid" style="margin-bottom:16px">
+      <div class="chart-card">
+        <div class="chart-title">Ticket volume trend by organisation</div>
+        <div style="font-size:11px;color:var(--t3);margin-bottom:10px">Last 30 days vs prior period — top 8 orgs by recent volume</div>
+        <div class="cw" style="height:260px"><canvas id="ch-org-trend"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Priority mix by organisation</div>
+        <div style="font-size:11px;color:var(--t3);margin-bottom:10px">P1 / P2 / P3 breakdown per org (top 10 by volume)</div>
+        <div class="cw" style="height:220px"><canvas id="ch-org-pri"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Org Table with expandable rows -->
+    <div class="chart-card" style="padding:0;margin-bottom:14px">
+      <div style="padding:14px 16px 0;display:flex;justify-content:space-between;align-items:center">
+        <div class="chart-title">Organisation breakdown</div>
+        <span style="font-size:11px;color:var(--t3)">Click a row to see tickets</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table id="org-table">
+          <thead><tr>
+            <th>Organisation</th><th>Tech POC(s)</th><th>Total</th><th>Closed</th>
+            <th>Open</th><th>Closure %</th><th>P1</th><th>P2</th><th>P3</th>
+            <th>SLA Breach</th><th>Top Mode</th>
+          </tr></thead>
+          <tbody>
+            ${orgList.map(([org, d]) => {
+              const rate = d.total ? Math.round(d.closed/d.total*100) : 0;
+              const rateBadge = rate>=90?'bg':rate>=75?'ba':'br';
+              const topMode = [...d.modes][0] || '—';
+              const pocStr = [...d.pocs].join(', ') || '—';
+              const expanded = orgExpanded[org];
+              const ticketRows = expanded ? d.tickets.sort((a,b)=>{
+                const so = s => ['closed','completed'].includes(String(s.status||'').toLowerCase()) ? 1 : 0;
+                return so(a) - so(b);
+              }).map(t => {
+                const isClosed = ['closed','completed'].includes(String(t.status||'').toLowerCase());
+                const sla = getSLAStatus(t);
+                return `<tr style="background:rgba(79,142,247,0.04)">
+                  <td class="mono" style="color:var(--t3);padding-left:28px">#${esc(t.id)}</td>
+                  <td colspan="2" style="color:var(--t2);font-size:11px">${esc(t.requestAcross||'—')}</td>
+                  <td colspan="2" style="color:var(--t2);font-size:11px">${esc(t.name)}</td>
+                  <td><span class="bdg ${priorityClass(t.priority)}">${priorityShort(t.priority)}</span></td>
+                  <td colspan="2"><span class="bdg ${statusClass(t.status)}">${esc(t.status||'Open')}</span></td>
+                  <td class="mono" style="font-size:11px;color:var(--t3)">${fmtDate(t.startTime)}</td>
+                  <td style="color:${sla&&sla.breached?'var(--red)':'var(--t3)'};font-size:11px">${sla?sla.elapsedHrs+'h':'—'}</td>
+                  <td style="font-size:11px;color:var(--t2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.description)}</td>
+                </tr>`;
+              }).join('') : '';
+              return `<tr style="cursor:pointer" onclick="toggleOrg('${esc(org).replace(/'/g,"\\'")}')">
+                <td style="font-weight:500">${expanded?'▼':'▶'} ${esc(org)}</td>
+                <td style="font-size:11px;color:var(--t2)">${pocStr}</td>
+                <td class="mono">${d.total}</td>
+                <td class="mono" style="color:var(--green)">${d.closed}</td>
+                <td class="mono" style="color:${d.open>0?'var(--amber)':'var(--t3)'}">${d.open}</td>
+                <td><span class="bdg ${rateBadge}">${rate}%</span></td>
+                <td class="mono" style="color:var(--red)">${d.p1}</td>
+                <td class="mono" style="color:var(--amber)">${d.p2}</td>
+                <td class="mono" style="color:var(--blue)">${d.p3}</td>
+                <td class="mono" style="color:${d.slaBreached>0?'var(--red)':'var(--green)'};font-weight:600">${d.slaBreached}</td>
+                <td style="font-size:11px;color:var(--t2)">${esc(topMode)}</td>
+              </tr>${ticketRows}`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+
+  // Charts
+  // Ticket Volume Trend chart — last 30 days (recent) vs prior 30 days
+  console.log('[OrgView] allTickets:', allTickets.length, 'getTickets():', getTickets().length);
+  console.log('[OrgView] trendSource length:', trendSource.length);
+  console.log('[OrgView] trendMap:', JSON.stringify(trendMap).slice(0,500));
+  console.log('[OrgView] top8trend:', JSON.stringify(top8trend));
+  console.log('[OrgView] top6pri (first 3):', JSON.stringify(top6pri.slice(0,3).map(([o,d])=>({o,p1:d.p1,p2:d.p2,p3:d.p3,total:d.total}))));
+  console.log('[OrgView] sample ticket priority values:', getTickets().slice(0,10).map(t=>t.priority));
+  console.log('[OrgView] sample ticket org values:', getTickets().slice(0,5).map(t=>t.org));
+  const trendLabels = top8trend.map(([o])=>o.length>16?o.slice(0,16)+'…':o);
+  new Chart(document.getElementById('ch-org-trend'), {
+    type: 'bar', indexAxis: 'y',
+    data: {
+      labels: trendLabels,
+      datasets: [
+        { label: 'Last 30 days',  data: top8trend.map(([,d])=>d.recent), backgroundColor:'#4f8ef7', borderRadius:3 },
+        { label: 'Prior 30 days', data: top8trend.map(([,d])=>d.prior),  backgroundColor:'rgba(79,142,247,0.25)', borderRadius:3 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, labels: { color: tc, font: { size: 11 }, boxWidth: 10 } },
+        tooltip: {
+          callbacks: {
+            afterBody: items => {
+              const org = top8trend[items[0]?.dataIndex];
+              if (!org) return [];
+              const diff = org[1].recent - org[1].prior;
+              return [diff > 0 ? `▲ +${diff} more than prior period` : diff < 0 ? `▼ ${diff} fewer than prior period` : '→ Same as prior period'];
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid:{color:gc}, ticks:{color:tc,font:{size:10}} },
+        y: { grid:{display:false}, ticks:{color:tc,font:{size:10}} }
+      }
+    }
+  });
+
+  // Priority Mix chart — stacked P1/P2/P3 per org
+  const priLabels = top6pri.map(([o])=>o.length>14?o.slice(0,14)+'…':o);
+  new Chart(document.getElementById('ch-org-pri'), {
+    type: 'bar', indexAxis: 'y',
+    data: {
+      labels: priLabels,
+      datasets: [
+        { label:'P1', data: top6pri.map(([,d])=>d.p1), backgroundColor:'#f05c6a', borderRadius:0 },
+        { label:'P2', data: top6pri.map(([,d])=>d.p2), backgroundColor:'#f5a623', borderRadius:0 },
+        { label:'P3', data: top6pri.map(([,d])=>d.p3), backgroundColor:'#4f8ef7', borderRadius:3 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, labels: { color: tc, font: { size: 11 }, boxWidth: 10 } } },
+      scales: {
+        x: { stacked: true, grid:{color:gc}, ticks:{color:tc,font:{size:10}} },
+        y: { stacked: true, grid:{display:false}, ticks:{color:tc,font:{size:10}} }
+      }
+    }
+  });
+}
+
+function toggleOrg(org) {
+  orgExpanded[org] = !orgExpanded[org];
+  // Only rebuild the table body — don't re-render charts
+  rebuildOrgTable();
+}
+
+function rebuildOrgTable() {
+  const tbody = document.querySelector('#org-table tbody');
+  if (!tbody) { renderOrgView(); return; } // fallback if table not found
+
+  const orgMap = {};
+  getTickets().forEach(t => {
+    const org = t.org || 'Unknown';
+    if (!orgMap[org]) orgMap[org] = { total:0, closed:0, open:0, wip:0, p1:0, p2:0, p3:0, pocs:new Set(), modes:new Set(), tickets:[], slaBreached:0 };
+    const d = orgMap[org];
+    d.total++;
+    d.tickets.push(t);
+    const st = String(t.status||'').toLowerCase();
+    if (['closed','completed'].includes(st)) d.closed++;
+    else if (st.includes('progress')) { d.open++; d.wip++; }
+    else d.open++;
+    const ps = priorityShort(t.priority);
+    if (ps === 'P1') d.p1++;
+    else if (ps === 'P2') d.p2++;
+    else if (ps === 'P3') d.p3++;
+    else d.p3++; // unclassified counts as P3 so chart always has data
+    if (t.requestAcross) d.pocs.add(t.requestAcross);
+    if (t.mode) d.modes.add(modeShort(t.mode));
+    const sla = getSLAStatus(t);
+    if (sla && sla.breached && !['closed','completed'].includes(st)) d.slaBreached++;
+  });
+
+  const orgList = Object.entries(orgMap).sort((a,b) => b[1].total - a[1].total);
+
+  tbody.innerHTML = orgList.map(([org, d]) => {
+    const rate = d.total ? Math.round(d.closed/d.total*100) : 0;
+    const rateBadge = rate>=90?'bg':rate>=75?'ba':'br';
+    const topMode = [...d.modes][0] || '—';
+    const pocStr = [...d.pocs].join(', ') || '—';
+    const expanded = orgExpanded[org];
+    const ticketRows = expanded ? d.tickets.sort((a,b) => {
+      const so = s => ['closed','completed'].includes(String(s.status||'').toLowerCase()) ? 1 : 0;
+      return so(a) - so(b);
+    }).map(t => {
+      const sla = getSLAStatus(t);
+      return `<tr style="background:rgba(79,142,247,0.04)">
+        <td class="mono" style="color:var(--t3);padding-left:28px">#${esc(t.id)}</td>
+        <td colspan="2" style="color:var(--t2);font-size:11px">${esc(t.requestAcross||'—')}</td>
+        <td colspan="2" style="color:var(--t2);font-size:11px">${esc(t.name)}</td>
+        <td><span class="bdg ${priorityClass(t.priority)}">${priorityShort(t.priority)}</span></td>
+        <td colspan="2"><span class="bdg ${statusClass(t.status)}">${esc(t.status||'Open')}</span></td>
+        <td class="mono" style="font-size:11px;color:var(--t3)">${fmtDate(t.startTime)}</td>
+        <td style="color:${sla&&sla.breached?'var(--red)':'var(--t3)'};font-size:11px">${sla?sla.elapsedHrs+'h':'—'}</td>
+        <td style="font-size:11px;color:var(--t2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.description)}</td>
+      </tr>`;
+    }).join('') : '';
+
+    return `<tr style="cursor:pointer" onclick="toggleOrg('${esc(org).replace(/'/g,"\\'")}')">
+      <td style="font-weight:500">${expanded?'▼':'▶'} ${esc(org)}</td>
+      <td style="font-size:11px;color:var(--t2)">${pocStr}</td>
+      <td class="mono">${d.total}</td>
+      <td class="mono" style="color:var(--green)">${d.closed}</td>
+      <td class="mono" style="color:${d.open>0?'var(--amber)':'var(--t3)'}">${d.open}</td>
+      <td><span class="bdg ${rateBadge}">${rate}%</span></td>
+      <td class="mono" style="color:var(--red)">${d.p1}</td>
+      <td class="mono" style="color:var(--amber)">${d.p2}</td>
+      <td class="mono" style="color:var(--blue)">${d.p3}</td>
+      <td class="mono" style="color:${d.slaBreached>0?'var(--red)':'var(--green)'};font-weight:600">${d.slaBreached}</td>
+      <td style="font-size:11px;color:var(--t2)">${esc(topMode)}</td>
+    </tr>${ticketRows}`;
+  }).join('');
+}
+
+// ─── REPEAT ISSUES ────────────────────────────────────────────────────────────
+function renderRepeatIssues() {
+  const gc = 'rgba(15,22,41,0.07)', tc = '#4a5778';
+
+  // Group by Mode of Approach first (main category)
+  const modeMap = {};
+  getTickets().forEach(t => {
+    const mode = modeShort(t.mode) || 'Other';
+    if (!modeMap[mode]) modeMap[mode] = { total:0, open:0, closed:0, orgs:new Set(), pocs:new Set(), p1:0, p2:0, p3:0, tickets:[] };
+    const d = modeMap[mode];
+    d.total++;
+    d.tickets.push(t);
+    const st = String(t.status||'').toLowerCase();
+    if (['closed','completed'].includes(st)) d.closed++; else d.open++;
+    if (t.org) d.orgs.add(t.org);
+    if (t.requestAcross) d.pocs.add(t.requestAcross);
+    const rps = priorityShort(t.priority);
+    if (rps === 'P1') d.p1++; else if (rps === 'P2') d.p2++; else d.p3++;
+  });
+
+  // Group by description keywords (find recurring descriptions)
+  const keywordMap = {};
+  getTickets().forEach(t => {
+    const words = (t.description||'').toLowerCase().split(/\s+/).filter(w=>w.length>5).slice(0,4).join(' ');
+    if (!words) return;
+    if (!keywordMap[words]) keywordMap[words] = [];
+    keywordMap[words].push(t);
+  });
+  const repeats = Object.entries(keywordMap)
+    .filter(([,ts])=>ts.length>1)
+    .sort((a,b)=>b[1].length-a[1].length)
+    .slice(0,20);
+
+  const modeList = Object.entries(modeMap).sort((a,b)=>b[1].total-a[1].total);
+  const topModes = modeList.slice(0,7);
+
+  document.getElementById('main-area').innerHTML = `
+    <div class="stats-row" style="margin-bottom:18px">
+      <div class="stat bl"><div class="stat-l">Issue Categories</div><div class="stat-v">${modeList.length}</div></div>
+      <div class="stat re"><div class="stat-l">Recurring Patterns</div><div class="stat-v">${repeats.length}</div><div class="stat-s">Similar descriptions</div></div>
+      <div class="stat am"><div class="stat-l">Most Repeated</div><div class="stat-v" style="font-size:16px">${topModes[0]?topModes[0][0]:'—'}</div><div class="stat-s">${topModes[0]?topModes[0][1].total+' tickets':''}</div></div>
+      <div class="stat gr"><div class="stat-l">Top Repeat Open</div><div class="stat-v">${topModes[0]?topModes[0][1].open:0}</div><div class="stat-s">still unresolved</div></div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid" style="margin-bottom:16px">
+      <div class="chart-card">
+        <div class="chart-title">Ticket volume by issue category</div>
+        <div class="cw" style="height:260px"><canvas id="ch-rep-mode"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Open vs closed by category</div>
+        <div class="cw" style="height:260px"><canvas id="ch-rep-status"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Category breakdown table -->
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin:0 0 10px">Issue category breakdown</div>
+    <div class="chart-card" style="padding:0;margin-bottom:16px">
+      <div style="overflow-x:auto"><table>
+        <thead><tr>
+          <th>Issue Category</th><th>Total</th><th>Open</th><th>Closed</th>
+          <th>Closure %</th><th>P1</th><th>P2</th><th>P3</th>
+          <th>Unique Orgs</th><th>POCs Handling</th>
+        </tr></thead>
+        <tbody>
+          ${modeList.map(([mode, d]) => {
+            const rate = d.total ? Math.round(d.closed/d.total*100) : 0;
+            return `<tr>
+              <td style="font-weight:500">${esc(mode)}</td>
+              <td class="mono">${d.total}</td>
+              <td class="mono" style="color:${d.open>0?'var(--amber)':'var(--t3)'}">${d.open}</td>
+              <td class="mono" style="color:var(--green)">${d.closed}</td>
+              <td><span class="bdg ${rate>=90?'bg':rate>=75?'ba':'br'}">${rate}%</span></td>
+              <td class="mono" style="color:var(--red)">${d.p1}</td>
+              <td class="mono" style="color:var(--amber)">${d.p2}</td>
+              <td class="mono" style="color:var(--blue)">${d.p3}</td>
+              <td class="mono">${d.orgs.size}</td>
+              <td style="font-size:11px;color:var(--t2)">${[...d.pocs].join(', ')||'—'}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table></div>
+    </div>
+
+    <!-- Recurring patterns -->
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin:0 0 10px">⟳ Recurring ticket patterns — same issue raised multiple times</div>
+    <div class="chart-card" style="padding:0;margin-bottom:14px">
+      ${repeats.length === 0
+        ? `<div style="padding:24px;text-align:center;color:var(--t3);font-size:13px">No recurring patterns found</div>`
+        : `<div style="overflow-x:auto"><table>
+          <thead><tr>
+            <th>#</th><th>Recurring Description (keywords)</th><th>Count</th>
+            <th>Open</th><th>Orgs Affected</th><th>POC</th><th>Latest</th>
+          </tr></thead>
+          <tbody>
+            ${repeats.map(([kw, ts], i) => {
+              const openCount = ts.filter(t=>!['closed','completed'].includes(String(t.status||'').toLowerCase())).length;
+              const orgs = [...new Set(ts.map(t=>t.org).filter(Boolean))].slice(0,3).join(', ');
+              const pocs = [...new Set(ts.map(t=>t.requestAcross).filter(Boolean))].slice(0,2).join(', ');
+              const latest = ts.map(t=>parseDateTime(t.startTime)).filter(Boolean).sort((a,b)=>b-a)[0];
+              const latestStr = latest ? fmtDate(latest.toISOString()) : '—';
+              const sample = ts[0].description || '';
+              return `<tr>
+                <td class="mono" style="color:var(--t3)">${i+1}</td>
+                <td>
+                  <div style="font-size:12px;color:var(--t1);margin-bottom:3px">${esc(sample.slice(0,80))}${sample.length>80?'…':''}</div>
+                  <div style="font-size:10px;color:var(--t3)">Keywords: ${esc(kw)}</div>
+                </td>
+                <td><span class="bdg ${ts.length>=5?'br':ts.length>=3?'ba':'bb'}" style="font-weight:700">${ts.length}×</span></td>
+                <td class="mono" style="color:${openCount>0?'var(--amber)':'var(--green)'}">${openCount}</td>
+                <td style="font-size:11px;color:var(--t2)">${esc(orgs)||'—'}</td>
+                <td style="font-size:11px;color:var(--t2)">${esc(pocs)||'—'}</td>
+                <td class="mono" style="font-size:11px;color:var(--t3)">${latestStr}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table></div>`}
+    </div>`;
+
+  // Charts
+  const repLabels = topModes.map(([m])=>m.length>16?m.slice(0,16)+'…':m);
+  new Chart(document.getElementById('ch-rep-mode'), {
+    type:'bar', indexAxis:'y',
+    data:{labels:repLabels,datasets:[{data:topModes.map(([,d])=>d.total),backgroundColor:'#9b8af5',borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:gc},ticks:{color:tc,font:{size:10}}},y:{grid:{display:false},ticks:{color:tc,font:{size:10}}}}}
+  });
+  new Chart(document.getElementById('ch-rep-status'), {
+    type:'bar', indexAxis:'y',
+    data:{labels:repLabels,datasets:[
+      {label:'Closed',data:topModes.map(([,d])=>d.closed),backgroundColor:'#34c98b',borderRadius:3},
+      {label:'Open',  data:topModes.map(([,d])=>d.open),  backgroundColor:'#f05c6a',borderRadius:3}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:tc,font:{size:11}}}},scales:{x:{stacked:true,grid:{color:gc},ticks:{color:tc,font:{size:10}}},y:{stacked:true,grid:{display:false},ticks:{color:tc,font:{size:10}}}}}
+  });
+}
+
+// ─── BACKLOG ──────────────────────────────────────────────────────────────────
+function renderBacklog() {
+  const backlog = getTickets().filter(t =>
+    !['closed','completed'].includes(String(t.status||'').toLowerCase())
+  );
+
+  function agingDays(t) {
+    const dt = parseDateTime(t.startTime);
+    if (!dt) return 0;
+    let days = 0;
+    const cur = new Date(dt);
+    cur.setHours(0, 0, 0, 0);
+    const end = new Date();
+    end.setHours(0, 0, 0, 0);
+    while (cur < end) {
+      const day = cur.getDay();
+      if (day !== 0 && day !== 6) days++; // skip Sun=0, Sat=6
+      cur.setDate(cur.getDate() + 1);
+    }
+    return days;
+  }
+
+  function agingColor(days, priority) {
+    const limit = priority.includes('P1') ? 0.17 : priority.includes('P2') ? 2 : 3;
+    if (days > limit * 10) return 'var(--red)';
+    if (days > limit * 3)  return 'var(--amber)';
+    return 'var(--t2)';
+  }
+
+  // POC summary table data
+  const pocSummary = {};
+  backlog.forEach(t => {
+    const poc = t.requestAcross || 'Unassigned';
+    if (!pocSummary[poc]) pocSummary[poc] = { total:0, sla:0, open:0, wip:0, p1:0, p2:0, p3:0, p1sla:0, p2sla:0, p3sla:0 };
+    const d = pocSummary[poc];
+    d.total++;
+    const st = String(t.status||'').toLowerCase();
+    if (st.includes('progress')) d.wip++; else d.open++;
+    const sla = getSLAStatus(t);
+    const breached = sla && sla.breached;
+    if (breached) d.sla++;
+    if ((t.priority||'').includes('P1')) { d.p1++; if(breached) d.p1sla++; }
+    else if ((t.priority||'').includes('P2')) { d.p2++; if(breached) d.p2sla++; }
+    else if ((t.priority||'').includes('P3')) { d.p3++; if(breached) d.p3sla++; }
+  });
+  const pocSummaryList = Object.entries(pocSummary).sort((a,b) => b[1].sla - a[1].sla || b[1].total - a[1].total);
+
+  // POC tab counts
+  const pocCounts = {};
+  backlog.forEach(t => {
+    const p = t.requestAcross || 'Unassigned';
+    pocCounts[p] = (pocCounts[p] || 0) + 1;
+  });
+  const pocList = Object.entries(pocCounts).sort((a,b) => b[1]-a[1]);
+
+  // Apply raised-date filter
+  const now = new Date();
+  const raisedCutoff = backlogRaisedDays > 0 ? new Date(now - backlogRaisedDays * 86400000) : null;
+
+  let filtered = backlogPOC === 'All'
+    ? backlog
+    : backlog.filter(t => (t.requestAcross||'Unassigned') === backlogPOC);
+
+  if (raisedCutoff) {
+    filtered = filtered.filter(t => {
+      const dt = parseDateTime(t.startTime);
+      return dt && dt >= raisedCutoff;
+    });
+  }
+
+  // Apply aging filter (tickets aged >= N business days)
+  if (backlogAgingDays > 0) {
+    filtered = filtered.filter(t => agingDays(t) >= backlogAgingDays);
+  }
+
+  const priOrder = p => p.includes('P1') ? 0 : p.includes('P2') ? 1 : 2;
+  const sorted = [...filtered].sort((a,b) =>
+    priOrder(a.priority) - priOrder(b.priority) ||
+    agingDays(b) - agingDays(a)
+  );
+
+  // SLA stats across all tickets for KPIs
+  const allSlaData     = getTickets().map(t => ({ t, sla: getSLAStatus(t) })).filter(x => x.sla);
+  const closedWithinSLA = allSlaData.filter(x => ['closed','completed'].includes(String(x.t.status||'').toLowerCase()) && !x.sla.breached).length;
+  const totalSLATracked = allSlaData.length;
+  const totalSLABreached = allSlaData.filter(x => x.sla.breached).length;
+  const slaBreachPct    = totalSLATracked ? Math.round(totalSLABreached / totalSLATracked * 100) : 0;
+  const slaMeetPct      = totalSLATracked ? Math.round(closedWithinSLA / totalSLATracked * 100) : 0;
+
+  document.getElementById('main-area').innerHTML = `
+    <div class="stats-row" style="margin-bottom:16px">
+      <div class="stat re"><div class="stat-l">Total Backlog</div><div class="stat-v">${backlog.length}</div></div>
+      <div class="stat re"><div class="stat-l">P1 Pending</div><div class="stat-v">${backlog.filter(t=>t.priority.includes('P1')).length}</div><div class="stat-s">≤ ${SLA_CONFIG.p1} hrs SLA</div></div>
+      <div class="stat am"><div class="stat-l">P2 Pending</div><div class="stat-v">${backlog.filter(t=>t.priority.includes('P2')).length}</div><div class="stat-s">≤ ${SLA_CONFIG.p2} hrs SLA</div></div>
+      <div class="stat bl"><div class="stat-l">P3 Pending</div><div class="stat-v">${backlog.filter(t=>t.priority.includes('P3')).length}</div><div class="stat-s">≤ ${SLA_CONFIG.p3} hrs SLA</div></div>
+      <div class="stat gr"><div class="stat-l">Closed within SLA</div><div class="stat-v">${closedWithinSLA}</div><div class="stat-s">${slaMeetPct}% closed on time · ${totalSLATracked} total</div></div>
+      <div class="stat re"><div class="stat-l">Team SLA Breach</div><div class="stat-v">${slaBreachPct}%</div><div class="stat-s">${totalSLABreached} of ${totalSLATracked}</div></div>
+      <div class="stat pu"><div class="stat-l">POCs with backlog</div><div class="stat-v">${pocList.length}</div></div>
+    </div>
+
+    <!-- POC SLA Summary Table -->
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin:0 0 10px">POC wise backlog & SLA status</div>
+    <div class="chart-card" style="padding:0;margin-bottom:16px">
+      <div style="overflow-x:auto"><table>
+        <thead><tr>
+          <th>Tech POC</th>
+          <th>Total Backlog</th>
+          <th>Open</th>
+          <th>WIP</th>
+          <th>SLA Breached</th>
+          <th>P1 Backlog</th>
+          <th>P1 Breached</th>
+          <th>P2 Backlog</th>
+          <th>P2 Breached</th>
+          <th>P3 Backlog</th>
+          <th>P3 Breached</th>
+          <th>Breach Rate</th>
+        </tr></thead>
+        <tbody>
+          ${pocSummaryList.map(([poc, d]) => {
+            const rate = d.total ? Math.round(d.sla/d.total*100) : 0;
+            return `<tr>
+              <td style="font-weight:600;color:var(--t1)">${esc(poc)}</td>
+              <td class="mono">${d.total}</td>
+              <td><span class="bdg ba">${d.open} Open</span></td>
+              <td><span class="bdg bb">${d.wip} WIP</span></td>
+              <td class="mono" style="color:${d.sla>0?'var(--red)':'var(--green)'};font-weight:600">${d.sla}</td>
+              <td class="mono" style="color:var(--red)">${d.p1}</td>
+              <td class="mono" style="color:${d.p1sla>0?'var(--red)':'var(--t3)'}">${d.p1sla}</td>
+              <td class="mono" style="color:var(--amber)">${d.p2}</td>
+              <td class="mono" style="color:${d.p2sla>0?'var(--amber)':'var(--t3)'}">${d.p2sla}</td>
+              <td class="mono" style="color:var(--blue)">${d.p3}</td>
+              <td class="mono" style="color:${d.p3sla>0?'var(--blue)':'var(--t3)'}">${d.p3sla}</td>
+              <td>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <div style="flex:1;background:rgba(0,0,0,0.08);border-radius:3px;height:5px;min-width:50px">
+                    <div style="width:${rate}%;height:100%;background:${rate>=50?'var(--red)':rate>=25?'var(--amber)':'var(--green)'};border-radius:3px"></div>
+                  </div>
+                  <span class="bdg ${rate>=50?'br':rate>=25?'ba':'bg'}">${rate}%</span>
+                </div>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table></div>
+    </div>
+
+    <!-- Day Filters Row -->
+    <div style="display:flex;gap:16px;margin-bottom:10px;flex-wrap:wrap;align-items:flex-start">
+      <!-- Raised Date filter -->
+      <div>
+        <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Raised in last</div>
+        <div style="display:flex;gap:4px">
+          ${[0,1,3,5].map(d => `<button
+            style="padding:5px 12px;border-radius:6px;font-size:11px;font-weight:500;cursor:pointer;border:1.5px solid ${backlogRaisedDays===d?'var(--blue)':'var(--bd)'};background:${backlogRaisedDays===d?'var(--blue)':'var(--s1)'};color:${backlogRaisedDays===d?'#fff':'var(--t2)'};font-family:'Plus Jakarta Sans',sans-serif;transition:all .15s"
+            onclick="setBacklogRaised(${d})">${d===0?'All':d+' day'+(d>1?'s':'')}</button>`).join('')}
+        </div>
+      </div>
+      <!-- Aging filter -->
+      <div>
+        <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Aging ≥ (business days)</div>
+        <div style="display:flex;gap:4px">
+          ${[0,1,3,5].map(d => `<button
+            style="padding:5px 12px;border-radius:6px;font-size:11px;font-weight:500;cursor:pointer;border:1.5px solid ${backlogAgingDays===d?'var(--amber)':'var(--bd)'};background:${backlogAgingDays===d?'var(--amber)':'var(--s1)'};color:${backlogAgingDays===d?'#0d1a12':'var(--t2)'};font-family:'Plus Jakarta Sans',sans-serif;transition:all .15s"
+            onclick="setBacklogAging(${d})">${d===0?'All':d+' day'+(d>1?'s':'')}</button>`).join('')}
+        </div>
+      </div>
+      <!-- Active filter summary -->
+      <div style="display:flex;align-items:flex-end;padding-bottom:2px">
+        ${(backlogRaisedDays>0||backlogAgingDays>0) ? `<span style="font-size:11px;color:var(--t3);background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:4px 10px">
+          Showing <strong style="color:var(--t1)">${sorted.length}</strong> of <strong style="color:var(--t1)">${backlog.length}</strong> backlog tickets
+          ${backlogRaisedDays>0?'· raised last '+backlogRaisedDays+'d':''}
+          ${backlogAgingDays>0?'· aged '+backlogAgingDays+'+d':''}
+          &nbsp;<span onclick="clearBacklogFilters()" style="color:var(--red);cursor:pointer;font-weight:500">✕ clear</span>
+        </span>` : ''}
+      </div>
+    </div>
+
+    <!-- POC Filter Tabs -->
+    <div class="backlog-poc-tabs">
+      <button class="bpoc-tab ${backlogPOC==='All'?'active':''}" onclick="setBacklogPOC('All')">
+        All <span class="bpoc-count">${backlog.length}</span>
+      </button>
+      ${pocList.map(([poc, cnt]) => `
+        <button class="bpoc-tab ${backlogPOC===poc?'active':''}" onclick="setBacklogPOC('${esc(poc)}')">
+          ${esc(poc)} <span class="bpoc-count">${cnt}</span>
+        </button>`).join('')}
+    </div>
+
+    <!-- Backlog Table -->
+    <div class="backlog-wrap">
+      <table>
+        <thead>
+          <tr class="thead-labels">
+            <th>ID</th><th>Tech POC</th><th>Raised By</th><th>Organisation</th>
+            <th>Food Court</th><th>Mode</th><th>Priority</th>
+            <th>Status</th><th>Raised Date</th><th>Aging</th><th>Description</th><th>Closure Notes</th><th style="text-align:center">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${sorted.length === 0
+            ? `<tr><td colspan="13"><div class="empty"><p>No backlog for this POC 🎉</p></div></td></tr>`
+            : sorted.map(t => {
+                const days = agingDays(t);
+                const aColor = agingColor(days, t.priority);
+                const isWIP = String(t.status||'').toLowerCase().includes('progress');
+                const sla = getSLAStatus(t);
+                const breached = sla && sla.breached;
+                return `<tr style="${breached ? 'background:rgba(240,92,106,0.04)' : ''}">
+                  <td class="mono" style="color:var(--t3)">#${esc(t.id)}</td>
+                  <td style="font-weight:500;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.requestAcross||'—')}</td>
+                  <td style="overflow:hidden">
+                    <div class="cell-name has-tooltip" data-tip="${esc(t.name)}\n${esc(t.contact)}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.name)}</div>
+                    <div style="font-size:10px;color:var(--t3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.contact)}</div>
+                  </td>
+                  <td class="has-tooltip" data-tip="${esc(t.org)}" style="font-size:11px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.org)}</td>
+                  <td class="has-tooltip" data-tip="${esc(t.foodCourt)}" style="font-size:11px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.foodCourt)}</td>
+                  <td class="has-tooltip" data-tip="${esc(t.mode)}" style="font-size:11px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(modeShort(t.mode))}</td>
+                  <td><span class="bdg ${priorityClass(t.priority)}">${priorityShort(t.priority)}</span></td>
+                  <td><span class="bdg ${statusClass(t.status)}">${esc(t.status||'Open')}</span></td>
+                  <td class="col-date" style="white-space:nowrap">${(() => {
+                    const v = fmtDateTime(t.startTime);
+                    const parts = v.split(' ');
+                    if (parts.length >= 4) {
+                      const time = parts[parts.length-1];
+                      const date = parts.slice(0,-1).join(' ');
+                      return date + '<br><span style=\'font-size:9.5px;color:var(--t3);opacity:.85\'>' + time + '</span>';
+                    }
+                    return v;
+                  })()}</td>
+                  <td style="white-space:nowrap">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:${aColor}">${days}d</span>
+                    ${breached ? `<br><span style="font-size:10px;color:var(--red)">⚠ SLA</span>` : ''}
+                  </td>
+                  <td class="has-tooltip" data-tip="${esc(t.description)}" style="font-size:11px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.description)}</td>
+                  <td class="has-tooltip" data-tip="${esc(t.closureNotes)}" style="font-size:11px;color:${t.closureNotes?'var(--green)':'var(--t3)'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.closureNotes ? esc(t.closureNotes).slice(0,30)+(t.closureNotes.length>30?'…':'') : '—'}</td>
+                  <td class="action-cell">
+                    <div class="action-btns">
+                      ${isWIP
+                        ? `<span class="wip-label">● WIP</span>`
+                        : `<button class="wip-btn" onclick="markWIP(${JSON.stringify(t).replace(/"/g,'&quot;')})">Mark WIP</button>`}
+                      <button class="close-btn" onclick="openCloseModal(${JSON.stringify(t).replace(/"/g,'&quot;')})">✓ Close</button>
+                    </div>
+                  </td>
+                </tr>`;
+              }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function setBacklogPOC(poc) {
+  backlogPOC = poc;
+  renderBacklog();
+}
+
+function setBacklogRaised(days) {
+  backlogRaisedDays = days;
+  renderBacklog();
+}
+
+function setBacklogAging(days) {
+  backlogAgingDays = days;
+  renderBacklog();
+}
+
+function clearBacklogFilters() {
+  backlogRaisedDays = 0;
+  backlogAgingDays  = 0;
+  renderBacklog();
+}
+
+// ─── SLA HELPERS ──────────────────────────────────────────────────────────────
+// ─── SLA PRESETS ──────────────────────────────────────────────────────────────
+const SLA_PRESETS = {
+  original: { label: 'Planned Approach', p1: 4,  p2: 48,  p3: 72  },
+  relaxed:  { label: 'Current Approach', p1: 8,  p2: 72,  p3: 120 },
+};
+
+// Load saved preset from localStorage
+let activeSLAPreset = localStorage.getItem('sq_sla_preset') || 'original';
+let SLA_CONFIG = { ...SLA_PRESETS[activeSLAPreset] };
+
+function setSLAPreset(key) {
+  activeSLAPreset = key;
+  SLA_CONFIG = { ...SLA_PRESETS[key] };
+  localStorage.setItem('sq_sla_preset', key);
+  // Update button labels
+  document.querySelectorAll('.sla-preset-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.preset === key);
+  });
+  // Update topbar indicator
+  const ind = document.getElementById('sla-indicator');
+  if (ind) ind.textContent = `SLA: ${SLA_CONFIG.label || SLA_PRESETS[key].label}`;
+  // Re-render current tab with new SLA config
+  renderCurrentTab();
+  showToast(`SLA switched to ${SLA_PRESETS[key].label} (P1:${SLA_CONFIG.p1}h P2:${SLA_CONFIG.p2}h P3:${SLA_CONFIG.p3}h)`, 'success');
+}
+
+function slaLimitHrs(priority) {
+  if ((priority||'').includes('P1')) return SLA_CONFIG.p1;
+  if ((priority||'').includes('P2')) return SLA_CONFIG.p2;
+  if ((priority||'').includes('P3')) return SLA_CONFIG.p3;
+  return null;
+}
+
+
+// Calculate elapsed BUSINESS hours between two dates — skips Sat & Sun entirely
+function businessHoursBetween(start, end) {
+  if (!start || !end || end <= start) return 0;
+  let elapsed = 0;
+  const cur = new Date(start);
+  // Step through in 1-hour increments, skip weekends
+  while (cur < end) {
+    const day = cur.getDay(); // 0=Sun, 6=Sat
+    if (day !== 0 && day !== 6) {
+      // Count how much of this hour falls within the window
+      const nextHour = new Date(cur.getTime() + 3600000);
+      const sliceEnd = nextHour < end ? nextHour : end;
+      elapsed += (sliceEnd - cur) / 3600000;
+    }
+    cur.setTime(cur.getTime() + 3600000);
+  }
+  return elapsed;
+}
+
+function getSLAStatus(ticket) {
+  const limit = slaLimitHrs(ticket.priority);
+  if (!limit) return null;
+  const raised = parseDateTime(ticket.startTime);
+  if (!raised) return null;
+  const isClosed = ['closed','completed'].includes(String(ticket.status||'').toLowerCase());
+  const compareTime = isClosed ? parseDateTime(ticket.closureDate) : new Date();
+  if (!compareTime) return null;
+  const elapsedHrs = businessHoursBetween(raised, compareTime);
+  const breached = elapsedHrs > limit;
+  return { elapsedHrs: Math.round(elapsedHrs), limit, breached, isClosed };
+}
+
+// ─── ANALYTICS ────────────────────────────────────────────────────────────────
+function renderAnalytics() {
+  const gc = 'rgba(15,22,41,0.07)', tc = '#4a5778';
+
+  // SLA analysis
+  const slaData       = getTickets().map(t => ({ ...t, sla: getSLAStatus(t) })).filter(t => t.sla);
+  const slaBreach     = slaData.filter(t => t.sla.breached);
+  // SLA Met = only CLOSED tickets closed before SLA limit (consistent with Backlog page)
+  const slaOk         = slaData.filter(t => ['closed','completed'].includes(String(t.status||'').toLowerCase()) && !t.sla.breached);
+  const pendingBreach = slaBreach.filter(t => !['closed','completed'].includes(String(t.status||'').toLowerCase()));
+
+  // SLA met vs breached by priority — met = closed within SLA only
+  const priBreachMet = ['P1','P2','P3'].map(p => ({
+    p,
+    total:  getTickets().filter(t => priorityShort(t.priority) === p).length,
+    met:    slaData.filter(t => priorityShort(t.priority)===p && ['closed','completed'].includes(String(t.status||'').toLowerCase()) && !t.sla.breached).length,
+    breach: slaData.filter(t => priorityShort(t.priority)===p && t.sla.breached).length,
+  }));
+
+  // Pending SLA breach detail rows
+  const pendingBreachRows = pendingBreach
+    .sort((a,b) => b.sla.elapsedHrs - a.sla.elapsedHrs)
+    .slice(0, 50)
+    .map(t => {
+      const agingDays = (() => {
+        const dt = parseDateTime(t.startTime);
+        if (!dt) return '—';
+        let days = 0;
+        const cur = new Date(dt); cur.setHours(0,0,0,0);
+        const end = new Date(); end.setHours(0,0,0,0);
+        while (cur < end) { if (cur.getDay()!==0&&cur.getDay()!==6) days++; cur.setDate(cur.getDate()+1); }
+        return days + 'd';
+      })();
+      const agingColor = parseInt(agingDays) > 14 ? 'var(--red)' : parseInt(agingDays) > 7 ? 'var(--amber)' : 'var(--t2)';
+      return `<tr>
+        <td class="mono" style="color:var(--t3)">#${esc(t.id)}</td>
+        <td>${esc(t.requestAcross||'—')}</td>
+        <td>${esc(t.name)}</td>
+        <td>${esc(t.org)}</td>
+        <td><span class="bdg ${priorityClass(t.priority)}">${priorityShort(t.priority)} (≤${t.sla.limit}h)</span></td>
+        <td class="col-date">${fmtDate(t.startTime)}</td>
+        <td class="mono" style="color:${agingColor};font-weight:600">${agingDays}</td>
+        <td><span class="bdg ${statusClass(t.status)}">${esc(t.status||'Open')}</span></td>
+        <td style="font-size:11px;color:var(--t2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.description)}</td>
+      </tr>`;
+    }).join('');
+
+  const byStatus = groupBy(getTickets(), t => t.status || 'Open');
+
+  document.getElementById('main-area').innerHTML = `
+    <!-- SLA KPIs — unique to this tab -->
+    <div class="stats-row">
+      <div class="stat re"><div class="stat-l">Total SLA Breached</div><div class="stat-v">${slaBreach.length}</div><div class="stat-s">${slaData.length ? Math.round(slaBreach.length/slaData.length*100) : 0}% of tracked</div></div>
+      <div class="stat re"><div class="stat-l">Pending + Breached</div><div class="stat-v">${pendingBreach.length}</div><div class="stat-s">Needs immediate action</div></div>
+      <div class="stat gr"><div class="stat-l">Closed within SLA</div><div class="stat-v">${slaOk.length}</div><div class="stat-s">Closed on time</div></div>
+      <div class="stat am"><div class="stat-l">P1 SLA Met</div><div class="stat-v">${priBreachMet[0].met}</div><div class="stat-s">of ${priBreachMet[0].total} · ≤${SLA_CONFIG.p1}h</div></div>
+      <div class="stat am"><div class="stat-l">P2 SLA Met</div><div class="stat-v">${priBreachMet[1].met}</div><div class="stat-s">of ${priBreachMet[1].total} · ≤${SLA_CONFIG.p2}h</div></div>
+      <div class="stat bl"><div class="stat-l">P3 SLA Met</div><div class="stat-v">${priBreachMet[2].met}</div><div class="stat-s">of ${priBreachMet[2].total} · ≤${SLA_CONFIG.p3}h</div></div>
+    </div>
+
+    <!-- SLA Charts -->
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin:20px 0 10px">SLA Compliance — P1 ≤ ${SLA_CONFIG.p1} hrs | P2 ≤ ${SLA_CONFIG.p2} hrs | P3 ≤ ${SLA_CONFIG.p3} hrs</div>
+    <div class="charts-grid" style="margin-bottom:14px">
+      <div class="chart-card">
+        <div class="chart-title">SLA met vs breached by priority</div>
+        <div class="cw" style="height:220px"><canvas id="ch-sla-pri"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Overall status distribution</div>
+        <div class="cw" style="height:220px"><canvas id="ch-status"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Pending SLA Breach Detail Table -->
+    <div class="chart-card" style="margin-bottom:14px;padding:0">
+      <div style="padding:14px 16px 8px">
+        <div class="chart-title" style="margin-bottom:0">⚠ Pending tickets breaching SLA — action required (${pendingBreach.length})</div>
+      </div>
+      ${pendingBreach.length === 0
+        ? `<div style="padding:24px;text-align:center;color:var(--green);font-size:13px">✓ No pending SLA breaches</div>`
+        : `<div style="overflow-x:auto"><table>
+            <thead><tr>
+              <th>ID</th><th>Tech POC</th><th>Raised By</th><th>Org</th>
+              <th>Priority / SLA</th><th>Raised Date</th><th>Aging</th><th>Status</th><th>Description</th>
+            </tr></thead>
+            <tbody>${pendingBreachRows}</tbody>
+          </table></div>`}
+    </div>
+
+    <!-- Daily Volume -->
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin:20px 0 10px">Daily Ticket Volume</div>
+    <div class="chart-card" style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+        <div class="chart-title" style="margin-bottom:0">Tickets raised & closed per day</div>
+        <select id="daily-range" onchange="updateDailyChart()" style="background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:5px 10px;color:var(--t1);font-size:11px;outline:none;">
+          <option value="7">Last 7 days</option>
+          <option value="14">Last 14 days</option>
+          <option value="30" selected>Last 30 days</option>
+          <option value="0">All time</option>
+        </select>
+      </div>
+      <div class="cw" style="height:280px"><canvas id="ch-daily"></canvas></div>
+    </div>`;
+
+  // SLA priority chart
+  new Chart(document.getElementById('ch-sla-pri'), {
+    type: 'bar',
+    data: {
+      labels: priBreachMet.map(x => x.p),
+      datasets: [
+        { label: 'SLA Met',  data: priBreachMet.map(x => x.met),    backgroundColor: '#34c98b', borderRadius: 4 },
+        { label: 'Breached', data: priBreachMet.map(x => x.breach), backgroundColor: '#f05c6a', borderRadius: 4 }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, labels: { color: tc, font: { size: 11 } } } },
+      scales: { x: { grid: { color: gc }, ticks: { color: tc, font: { size: 11 } } }, y: { grid: { color: gc }, ticks: { color: tc, font: { size: 11 } } } }
+    }
+  });
+
+  // Status donut
+  const sLabels = Object.keys(byStatus);
+  new Chart(document.getElementById('ch-status'), {
+    type: 'doughnut',
+    data: { labels: sLabels, datasets: [{ data: sLabels.map(k => byStatus[k].length), backgroundColor: ['#f5a623','#4f8ef7','#34c98b','#2dd4bf','#f05c6a'], borderWidth: 2, borderColor: '#161a23' }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '60%',
+      plugins: { legend: { display: true, position: 'right', labels: { color: tc, font: { size: 11 }, boxWidth: 10, padding: 8 } } }
+    }
+  });
+
+  // Daily volume line chart
+  window._dailyChartInstance = null;
+  window._buildDailyChart = function(days) {
+    const dateKeyFull = d => { const dt = parseDateTime(d); if (!dt || isNaN(dt)) return null; const y=dt.getFullYear(),m=String(dt.getMonth()+1).padStart(2,'0'),day=String(dt.getDate()).padStart(2,'0'); return y+'-'+m+'-'+day; };
+    const now    = new Date();
+    const cutoff = days > 0 ? new Date(now - days * 86400000) : null;
+    const filtered = cutoff ? getTickets().filter(t => { const dt = parseDateTime(t.startTime); return dt && dt >= cutoff; }) : getTickets();
+    const allDatesSet = new Set();
+    filtered.forEach(t => { const d = dateKeyFull(t.startTime); if(d) allDatesSet.add(d); });
+    getTickets().forEach(t => {
+      if (['closed','completed'].includes(String(t.status||'').toLowerCase())) {
+        const d = dateKeyFull(t.closureDate);
+        if (d && (!cutoff || new Date(d) >= cutoff)) allDatesSet.add(d);
+      }
+    });
+    const sortedDates = [...allDatesSet].sort();
+    const labels      = sortedDates.map(d => { const p=d.split('-'); return new Date(+p[0],+p[1]-1,+p[2]).toLocaleDateString('en-GB', {day:'2-digit', month:'short'}); });
+    const raisedByDay = {};
+    filtered.forEach(t => { const d = dateKeyFull(t.startTime); if(d) raisedByDay[d] = (raisedByDay[d]||0)+1; });
+    const closedByDay = {};
+    getTickets().forEach(t => {
+      if (['closed','completed'].includes(String(t.status||'').toLowerCase())) {
+        const d = dateKeyFull(t.closureDate);
+        if (d && (!cutoff || new Date(d) >= cutoff)) closedByDay[d] = (closedByDay[d]||0)+1;
+      }
+    });
+    if (window._dailyChartInstance) window._dailyChartInstance.destroy();
+    window._dailyChartInstance = new Chart(document.getElementById('ch-daily'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label:'Raised', data: sortedDates.map(d=>raisedByDay[d]||0), borderColor:'#4f8ef7', backgroundColor:'rgba(79,142,247,0.1)', pointBackgroundColor:'#4f8ef7', pointRadius:4, pointHoverRadius:6, fill:true, tension:0.4 },
+          { label:'Closed', data: sortedDates.map(d=>closedByDay[d]||0), borderColor:'#34c98b', backgroundColor:'rgba(52,201,139,0.1)', pointBackgroundColor:'#34c98b', pointRadius:4, pointHoverRadius:6, fill:true, tension:0.4 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, labels: { color: tc, font: { size: 11 }, boxWidth: 10 } },
+          tooltip: { callbacks: { afterBody: items => { const r = items.find(i=>i.dataset.label==='Raised')?.parsed?.y||0; const c = items.find(i=>i.dataset.label==='Closed')?.parsed?.y||0; return r||c ? [`Net open: +${r-c}`] : []; } } }
+        },
+        scales: {
+          x: { grid:{color:gc}, ticks:{color:tc, font:{size:10}, maxRotation:45} },
+          y: { grid:{color:gc}, ticks:{color:tc, font:{size:11}}, beginAtZero:true }
+        }
+      }
+    });
+  };
+  window._buildDailyChart(30);
+}
+
+// ─── MARK WIP ─────────────────────────────────────────────────────────────────
+async function markWIP(ticket) {
+  const t = allTickets.find(x => x.uid === ticket.uid);
+  try {
+    const writtenRow = await safeUpdate(ticket.id, { [COL.status]: 'Work In Progress' }, ticket.source);
+    if (t) t.status = 'Work In Progress';
+    showToast(`Ticket #${ticket.id} → WIP ✓ (${ticket.source}, row ${writtenRow})`, 'success');
+    document.getElementById('last-sync').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    renderCurrentTab();
+  } catch(e) {
+    showToast('Failed to update: ' + e.message, 'error');
+  }
+}
+
+// ─── CLOSE TICKET ─────────────────────────────────────────────────────────────
+function openCloseModal(ticket) {
+  currentTicket = ticket;
+  document.getElementById('closure-notes').value = '';
+  document.getElementById('modal-ticket-info').innerHTML = `
+    <div class="row"><span class="label">Ticket #</span><span class="val">${esc(ticket.id)}</span></div>
+    <div class="row"><span class="label">Raised by</span><span class="val">${esc(ticket.name)}</span></div>
+    <div class="row"><span class="label">Org</span><span class="val">${esc(ticket.org)}</span></div>
+    <div class="row"><span class="label">Priority</span><span class="val">${esc(priorityShort(ticket.priority))}</span></div>
+    <div class="row"><span class="label">Issue</span><span class="val" style="color:var(--t2)">${esc(ticket.description||'')}</span></div>`;
+  document.getElementById('close-modal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('close-modal').style.display = 'none';
+  currentTicket = null;
+}
+
+async function confirmClose() {
+  if (!currentTicket) return;
+  const notes = document.getElementById('closure-notes').value.trim();
+  if (!notes) { showToast('Please add closure notes', 'error'); return; }
+
+  const btn = document.getElementById('confirm-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  try {
+    // Capture exact date+time only when marking Closed
+    const now = new Date();
+    const closureDateTime = now.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})
+      + ' ' + now.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
+
+    // safeUpdate re-fetches sheet to find the correct row by ticket ID before writing
+    const writtenRow = await safeUpdate(currentTicket.id, {
+      [COL.status]: 'Closed',
+      [COL.closureDate]: closureDateTime,
+      [COL.closureNotes]: notes
+    }, currentTicket.source);
+
+    const t = allTickets.find(x => x.uid === currentTicket.uid);
+    if (t) { t.status = 'Closed'; t.closureDate = closureDateTime; t.closureNotes = notes; }
+
+    showToast(`Ticket #${currentTicket.id} closed ✓ (${currentTicket.source}, row ${writtenRow})`, 'success');
+    document.getElementById('last-sync').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    closeModal();
+    renderCurrentTab();
+  } catch(e) {
+    showToast('Failed to update: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '✓ Mark Closed';
+  }
+}
+
+// ─── TAB SWITCHING ────────────────────────────────────────────────────────────
+function showTab(tab, btn) {
+  activeTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  // Tech Requirements is independent of the main ticket load
+  if (allTickets.length === 0) { loadTickets(); return; }
+  renderCurrentTab();
+}
+
+// ─── CONFIG MODAL ─────────────────────────────────────────────────────────────
+function openConfig() {
+  document.getElementById('cfg-token').value = CONFIG.token || '';
+  document.getElementById('config-modal').style.display = 'flex';
+}
+
+function saveConfig(silent) {
+  const t = document.getElementById('cfg-token')?.value?.trim();
+  if (t) CONFIG.token = t;
+  try { localStorage.setItem('sq_cfg', JSON.stringify({ token: CONFIG.token })); } catch(e){}
+  document.getElementById('config-modal').style.display = 'none';
+  if (!silent) { showToast('Token saved ✓', 'success'); loadTickets(); }
+}
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+function calcStats(tickets) {
+  const total  = tickets.length;
+  const closed = tickets.filter(t => ['closed','completed'].includes(String(t.status||'').toLowerCase())).length;
+  const open   = total - closed;
+  const p1     = tickets.filter(t => (t.priority||'').includes('P1')).length;
+  const p2     = tickets.filter(t => (t.priority||'').includes('P2')).length;
+  const p3     = tickets.filter(t => (t.priority||'').includes('P3')).length;
+  // Avg resolution days — only for closed tickets with valid dates
+  const resDays = tickets
+    .filter(t => ['closed','completed'].includes(String(t.status||'').toLowerCase()))
+    .map(t => {
+      const raised  = parseDateTime(t.startTime);
+      const closedD = parseDateTime(t.closureDate);
+      if (!raised || !closedD || closedD <= raised) return null;
+      return (closedD - raised) / 86400000;
+    })
+    .filter(d => d !== null);
+  const avgRes = resDays.length ? (resDays.reduce((a,b)=>a+b,0) / resDays.length).toFixed(1) : '—';
+  return { total, closed, open, p1, p2, p3, avgRes, closedPct: total ? Math.round(closed/total*100) : 0 };
+}
+
+function groupBy(arr, fn) {
+  return arr.reduce((acc, item) => {
+    const k = fn(item) || 'Unknown';
+    (acc[k] = acc[k] || []).push(item);
+    return acc;
+  }, {});
+}
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg, type='success') {
+  const wrap = document.getElementById('toast-wrap');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = (type === 'success' ? '✓ ' : '⚠ ') + msg;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+// ─── EXPORT ───────────────────────────────────────────────────────────────────
+function toggleExportMenu(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('export-menu');
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+document.addEventListener('click', () => {
+  const menu = document.getElementById('export-menu');
+  if (menu) menu.style.display = 'none';
+});
+
+function getExportLabel() {
+  const labels = { tickets:'All_Tickets', open:'Open_WIP', backlog:'Backlog', poc:'POC_Performance', analytics:'Analytics' };
+  return labels[activeTab] || 'Dashboard';
+}
+
+// ── Excel Export ──────────────────────────────────────────────────────────────
+function exportExcel() {
+  document.getElementById('export-menu').style.display = 'none';
+  try {
+    const wb = XLSX.utils.book_new();
+
+    if (activeTab === 'poc') {
+      // POC Performance sheet
+      const rows = [['Tech POC','Total','Closed','Open','Closure Rate %','Avg Resolution (days)','P1','P2','P3']];
+      const pocMap = {};
+      allTickets.forEach(t => {
+        const poc = t.requestAcross || 'Unassigned';
+        if (!pocMap[poc]) pocMap[poc] = {total:0,closed:0,open:0,p1:0,p2:0,p3:0,resDays:[]};
+        const d = pocMap[poc]; d.total++;
+        const isClosed = ['closed','completed'].includes(String(t.status||'').toLowerCase());
+        if (isClosed) { d.closed++; const r=parseDateTime(t.startTime),c=parseDateTime(t.closureDate); if(r&&c&&c>r) d.resDays.push((c-r)/86400000); } else d.open++;
+        const pps = priorityShort(t.priority); if (pps==='P1') d.p1++; else if (pps==='P2') d.p2++; else d.p3++;
+      });
+      Object.entries(pocMap).sort((a,b)=>b[1].total-a[1].total).forEach(([poc,d]) => {
+        const rate = d.total ? (d.closed/d.total*100).toFixed(1) : '0';
+        const avg  = d.resDays.length ? (d.resDays.reduce((a,b)=>a+b,0)/d.resDays.length).toFixed(1) : '';
+        rows.push([poc, d.total, d.closed, d.open, rate+'%', avg ? avg+'d' : '—', d.p1, d.p2, d.p3]);
+      });
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'POC Performance');
+
+    } else {
+      // Ticket data — get currently visible tickets
+      const isBacklog = activeTab === 'backlog';
+      const isOpen    = activeTab === 'open';
+      let tickets = isBacklog
+        ? allTickets.filter(t => !['closed','completed'].includes(String(t.status||'').toLowerCase()))
+        : isOpen
+          ? allTickets.filter(t => !['closed','completed'].includes(String(t.status||'').toLowerCase()))
+          : allTickets;
+
+      const headers = ['ID','Tech POC','Raised By','Contact','Organisation','Food Court','Mode','Priority','Raised Date','Closed Date','Status','Closure Notes','Description'];
+      const rows = [headers];
+      tickets.forEach(t => rows.push([
+        t.id, t.requestAcross, t.name, t.contact, t.org, t.foodCourt,
+        modeShort(t.mode), priorityShort(t.priority),
+        fmtDate(t.startTime), fmtDate(t.closureDate),
+        t.status||'Open', t.closureNotes, t.description
+      ]));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), getExportLabel());
+    }
+
+    XLSX.writeFile(wb, `SmartQ_${getExportLabel()}_${new Date().toISOString().slice(0,10)}.xlsx`);
+    showToast('Excel exported ✓', 'success');
+  } catch(e) { showToast('Export failed: ' + e.message, 'error'); }
+}
+
+// ── Image Export ──────────────────────────────────────────────────────────────
+async function exportImage() {
+  document.getElementById('export-menu').style.display = 'none';
+  showToast('Capturing image…', 'success');
+  try {
+    const el = document.getElementById('main-area');
+    const canvas = await html2canvas(el, {
+      backgroundColor: '#0d0f14',
+      scale: 2,
+      useCORS: true,
+      logging: false
+    });
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = `SmartQ_${getExportLabel()}_${new Date().toISOString().slice(0,10)}.png`;
+    a.click();
+    showToast('Image exported ✓', 'success');
+  } catch(e) { showToast('Image export failed: ' + e.message, 'error'); }
+}
+
+// ── PDF Export ────────────────────────────────────────────────────────────────
+async function exportPDF() {
+  document.getElementById('export-menu').style.display = 'none';
+  showToast('Generating PDF…', 'success');
+  try {
+    const { jsPDF } = window.jspdf;
+    const el = document.getElementById('main-area');
+    const canvas = await html2canvas(el, {
+      backgroundColor: '#0d0f14',
+      scale: 2,
+      useCORS: true,
+      logging: false
+    });
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({ orientation: canvas.width > canvas.height ? 'landscape' : 'portrait', unit: 'px', format: [canvas.width/2, canvas.height/2] });
+    pdf.addImage(imgData, 'PNG', 0, 0, canvas.width/2, canvas.height/2);
+    pdf.save(`SmartQ_${getExportLabel()}_${new Date().toISOString().slice(0,10)}.pdf`);
+    showToast('PDF exported ✓', 'success');
+  } catch(e) { showToast('PDF export failed: ' + e.message, 'error'); }
+}
+
+// ─── DAILY CHART UPDATE ───────────────────────────────────────────────────────
+function updateDailyChart() {
+  const days = parseInt(document.getElementById('daily-range')?.value || '30');
+  if (window._buildDailyChart) window._buildDailyChart(days);
+}
+
+// ─── POC DETAIL VIEW ──────────────────────────────────────────────────────────
+function showPOCDetail(poc) {
+  const tickets = getTickets().filter(t => t.requestAcross === poc);
+  const isClosed = t => ['closed','completed'].includes(String(t.status||'').toLowerCase());
+  const isOpen   = t => !isClosed(t);
+
+  // ── KPIs ──────────────────────────────────────────────────────────────────
+  const total    = tickets.length;
+  const closed   = tickets.filter(isClosed);
+  const open     = tickets.filter(isOpen);
+  const wip      = tickets.filter(t => String(t.status||'').toLowerCase().includes('progress'));
+  const rate     = total ? Math.round(closed.length/total*100) : 0;
+  const p1       = tickets.filter(t => priorityShort(t.priority)==='P1');
+  const p2       = tickets.filter(t => priorityShort(t.priority)==='P2');
+  const p3       = tickets.filter(t => priorityShort(t.priority)==='P3');
+
+  // Avg resolution days (closed tickets only)
+  const resDays  = closed.map(t => {
+    const s = parseDateTime(t.startTime), e = parseDateTime(t.closureDate);
+    return s && e && e > s ? (e-s)/86400000 : null;
+  }).filter(x => x !== null);
+  const avgRes   = resDays.length ? (resDays.reduce((a,b)=>a+b,0)/resDays.length).toFixed(1) : '—';
+
+  // SLA
+  const slaAll     = tickets.map(t => ({t, sla: getSLAStatus(t)})).filter(x => x.sla);
+  const slaBreached= slaAll.filter(x => x.sla.breached);
+  const slaMet     = slaAll.filter(x => !x.sla.breached && isClosed(x.t));
+
+  // Org breakdown
+  const orgMap = {};
+  tickets.forEach(t => {
+    const o = t.org || 'Unknown';
+    if (!orgMap[o]) orgMap[o] = {total:0, open:0, closed:0};
+    orgMap[o].total++;
+    isClosed(t) ? orgMap[o].closed++ : orgMap[o].open++;
+  });
+  const orgList = Object.entries(orgMap).sort((a,b)=>b[1].total-a[1].total);
+
+  // Aging — oldest open tickets
+  const now = new Date();
+  const openAged = open.map(t => {
+    const dt = parseDateTime(t.startTime);
+    const ageDays = dt ? Math.floor((now-dt)/86400000) : 0;
+    return {...t, ageDays};
+  }).sort((a,b) => b.ageDays - a.ageDays).slice(0,5);
+
+  // Monthly trend (last 6 months)
+  const monthMap = {};
+  tickets.forEach(t => {
+    const dt = parseDateTime(t.startTime);
+    if (!dt) return;
+    const key = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0');
+    if (!monthMap[key]) monthMap[key] = {raised:0, closed:0};
+    monthMap[key].raised++;
+    if (isClosed(t)) {
+      const cd = parseDateTime(t.closureDate);
+      if (cd) {
+        const ck = cd.getFullYear() + '-' + String(cd.getMonth()+1).padStart(2,'0');
+        if (!monthMap[ck]) monthMap[ck] = {raised:0, closed:0};
+        monthMap[ck].closed++;
+      }
+    }
+  });
+  const sortedMonths = Object.keys(monthMap).sort().slice(-6);
+  const monthLabels  = sortedMonths.map(k => { const [y,m] = k.split('-'); return new Date(+y,+m-1,1).toLocaleDateString('en-GB',{month:'short',year:'2-digit'}); });
+
+  // Sorted tickets for table
+  const sorted = [...tickets].sort((a,b) => isClosed(a) - isClosed(b));
+
+  const rateColor = rate>=90?'var(--green)':rate>=70?'var(--amber)':'var(--red)';
+  const avgColor  = avgRes==='—'?'var(--t3)':parseFloat(avgRes)<=2?'var(--green)':parseFloat(avgRes)<=7?'var(--amber)':'var(--red)';
+
+  document.getElementById('main-area').innerHTML = `
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <button class="btn btn-ghost btn-sm" onclick="renderPOCPerformance()">← Back</button>
+      <div>
+        <div style="font-size:17px;font-weight:700;letter-spacing:-.3px">${esc(poc)}</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:2px">${total} total tickets · POC Detail View</div>
+      </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="stats-row" style="margin-bottom:20px">
+      <div class="stat bl"><div class="stat-l">Total Tickets</div><div class="stat-v">${total}</div></div>
+      <div class="stat gr"><div class="stat-l">Closed</div><div class="stat-v">${closed.length}</div><div class="stat-s">${rate}% closure rate</div></div>
+      <div class="stat am"><div class="stat-l">Open / WIP</div><div class="stat-v">${open.length}</div><div class="stat-s">${wip.length} in progress</div></div>
+      <div class="stat re"><div class="stat-l">SLA Breached</div><div class="stat-v">${slaBreached.length}</div><div class="stat-s">${slaMet.length} met SLA</div></div>
+      <div class="stat pu"><div class="stat-l">Avg Resolution</div><div class="stat-v" style="font-size:${avgRes==='—'?'22':'20'}px">${avgRes}${avgRes!=='—'?'d':''}</div><div class="stat-s">closed tickets</div></div>
+      <div class="stat re"><div class="stat-l">P1 Tickets</div><div class="stat-v">${p1.length}</div><div class="stat-s">${p1.filter(isOpen).length} still open</div></div>
+    </div>
+
+    <!-- Charts row -->
+    <div class="charts-grid" style="margin-bottom:16px">
+
+      <!-- Trend chart -->
+      <div class="chart-card">
+        <div class="chart-title">Monthly ticket trend</div>
+        <div style="font-size:11px;color:var(--t3);margin-bottom:10px">Raised vs closed per month (last 6 months)</div>
+        <div class="cw" style="height:220px"><canvas id="ch-poc-monthly"></canvas></div>
+      </div>
+
+      <!-- Priority + Org side by side -->
+      <div style="display:flex;flex-direction:column;gap:14px">
+
+        <!-- Priority breakdown -->
+        <div class="chart-card" style="flex:1">
+          <div class="chart-title">Priority breakdown</div>
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:6px">
+            ${[['P1',p1,'re'],['P2',p2,'am'],['P3',p3,'bl']].map(([label,arr,cls])=>`
+              <div style="flex:1;min-width:80px;background:var(--s2);border:1.5px solid var(--bd);border-radius:10px;padding:12px;text-align:center">
+                <div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;font-family:'JetBrains Mono',monospace;margin-bottom:6px">${label}</div>
+                <div style="font-size:24px;font-weight:700;color:var(--${cls==='re'?'red':cls==='am'?'amber':'blue'})">${arr.length}</div>
+                <div style="font-size:10px;color:var(--t3);margin-top:4px;font-family:'JetBrains Mono',monospace">${arr.filter(isOpen).length} open</div>
+                <div style="margin-top:8px;height:4px;background:var(--bd);border-radius:2px;overflow:hidden">
+                  <div style="height:100%;width:${total?Math.round(arr.length/total*100):0}%;background:var(--${cls==='re'?'red':cls==='am'?'amber':'blue'});border-radius:2px"></div>
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>
+
+        <!-- SLA mini summary -->
+        <div class="chart-card" style="flex:1">
+          <div class="chart-title">SLA performance</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">
+            ${[['P1',p1,'var(--red)'],['P2',p2,'var(--amber)'],['P3',p3,'var(--blue)']].map(([label,arr,col])=>{
+              const tracked = arr.map(t=>getSLAStatus(t)).filter(Boolean);
+              const br = tracked.filter(s=>s.breached).length;
+              const met = tracked.filter(s=>!s.breached&&isClosed(arr[tracked.indexOf(s)])).length;
+              const pct = tracked.length ? Math.round((tracked.length-br)/tracked.length*100) : null;
+              return `<div style="flex:1;min-width:70px;background:var(--s2);border:1.5px solid var(--bd);border-radius:10px;padding:10px;text-align:center">
+                <div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;font-family:'JetBrains Mono',monospace;margin-bottom:4px">${label} SLA</div>
+                <div style="font-size:18px;font-weight:700;color:${col}">${pct!==null?pct+'%':'—'}</div>
+                <div style="font-size:10px;color:var(--t3);margin-top:3px">${br} breached</div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Org breakdown + Oldest open tickets -->
+    <div class="charts-grid" style="margin-bottom:16px">
+
+      <!-- Org breakdown table -->
+      <div class="chart-card" style="padding:0">
+        <div style="padding:14px 16px 10px;border-bottom:1px solid var(--bd)">
+          <div class="chart-title" style="margin-bottom:0">Organisation breakdown</div>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr>
+              <th>Organisation</th><th>Total</th><th>Open</th><th>Closed</th><th>Closure %</th>
+            </tr></thead>
+            <tbody>
+              ${orgList.map(([org,d])=>{
+                const r = d.total ? Math.round(d.closed/d.total*100) : 0;
+                return `<tr>
+                  <td style="font-weight:500;font-size:12px">${esc(org)}</td>
+                  <td class="mono">${d.total}</td>
+                  <td class="mono" style="color:${d.open>0?'var(--amber)':'var(--t3)'}">${d.open}</td>
+                  <td class="mono" style="color:var(--green)">${d.closed}</td>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:6px">
+                      <div style="flex:1;height:5px;background:var(--s3);border-radius:3px;overflow:hidden;min-width:50px">
+                        <div style="height:100%;width:${r}%;background:${r>=80?'var(--green)':r>=50?'var(--amber)':'var(--red)'};border-radius:3px"></div>
+                      </div>
+                      <span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--t2)">${r}%</span>
+                    </div>
+                  </td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Oldest open tickets -->
+      <div class="chart-card" style="padding:0">
+        <div style="padding:14px 16px 10px;border-bottom:1px solid var(--bd)">
+          <div class="chart-title" style="margin-bottom:0">⚠ Oldest open tickets</div>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr>
+              <th>ID</th><th>Priority</th><th>Org</th><th>Aging</th><th>Description</th>
+            </tr></thead>
+            <tbody>
+              ${openAged.length===0
+                ? `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--green)">✓ No open tickets</td></tr>`
+                : openAged.map(t=>`<tr>
+                    <td class="mono" style="color:var(--t3)">#${esc(t.id)}</td>
+                    <td><span class="bdg ${priorityClass(t.priority)}">${priorityShort(t.priority)}</span></td>
+                    <td style="font-size:11px;color:var(--t2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.org)}</td>
+                    <td><span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:${t.ageDays>14?'var(--red)':t.ageDays>7?'var(--amber)':'var(--t2)'}">${t.ageDays}d</span></td>
+                    <td class="cell-desc" style="font-size:11px">${esc((t.description||'').slice(0,60))}${(t.description||'').length>60?'…':''}</td>
+                  </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Full ticket table -->
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin:0 0 10px">All tickets (${total})</div>
+    <div class="poc-detail-wrap">
+      <table>
+        <thead><tr>
+          <th>ID</th><th>Organisation</th><th>Food Court</th><th>Priority</th>
+          <th>Raised Date</th><th>Closed Date</th><th>Status</th><th>TAT</th><th>SLA</th><th>Description</th>
+        </tr></thead>
+        <tbody>
+          ${sorted.map(t => {
+            const cl = isClosed(t);
+            const raised = parseDateTime(t.startTime);
+            const closedDt = parseDateTime(t.closureDate);
+            const tatDays = raised && closedDt && closedDt > raised ? ((closedDt-raised)/86400000).toFixed(1)+'d' : '—';
+            const sla = getSLAStatus(t);
+            const slaLabel = sla ? (sla.breached ? `<span style="color:var(--red);font-size:10px;font-family:'JetBrains Mono',monospace">⚠ ${sla.elapsedHrs}h</span>` : `<span style="color:var(--green);font-size:10px;font-family:'JetBrains Mono',monospace">✓</span>`) : '—';
+            return `<tr>
+              <td class="mono" style="color:var(--t3)">#${esc(t.id)}</td>
+              <td class="has-tooltip" data-tip="${esc(t.org)}" style="font-size:11px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px">${esc(t.org)}</td>
+              <td class="has-tooltip" data-tip="${esc(t.foodCourt)}" style="font-size:11px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100px">${esc(t.foodCourt)}</td>
+              <td><span class="bdg ${priorityClass(t.priority)}">${priorityShort(t.priority)}</span></td>
+              <td class="col-date">${fmtDateTime(t.startTime)}</td>
+              <td class="col-date" style="color:${cl?'var(--green)':'var(--t3)'}">${fmtDateTime(t.closureDate)||'—'}</td>
+              <td><span class="bdg ${statusClass(t.status)}">${esc(t.status||'Open')}</span></td>
+              <td class="mono" style="font-size:11px;color:var(--t3)">${tatDays}</td>
+              <td>${slaLabel}</td>
+              <td class="cell-desc" style="font-size:11px" title="${esc(t.description)}">${esc(t.description)}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+
+  // Monthly trend chart
+  const gc = 'rgba(15,22,41,0.07)', tc = '#4a5778';
+  new Chart(document.getElementById('ch-poc-monthly'), {
+    type: 'bar',
+    data: {
+      labels: monthLabels,
+      datasets: [
+        { label: 'Raised',  data: sortedMonths.map(k=>monthMap[k].raised),  backgroundColor: 'rgba(26,110,245,0.7)', borderRadius: 4 },
+        { label: 'Closed',  data: sortedMonths.map(k=>monthMap[k].closed),  backgroundColor: 'rgba(10,158,108,0.7)', borderRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, labels: { color: tc, font: { size: 11 }, boxWidth: 10 } } },
+      scales: {
+        x: { grid: { color: gc }, ticks: { color: tc, font: { size: 10 } } },
+        y: { grid: { color: gc }, ticks: { color: tc, font: { size: 10 } }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+
+// ─── SETUP HEADERS ───────────────────────────────────────────────────────────
+async function setupHeaders() {
+  if (!IS_SHAREPOINT && !CONFIG.token) { showToast('Please connect SharePoint token first', 'error'); return; }
+  showToast('Writing X/Y/Z headers to all 5 files…', 'success');
+  const headers = ['Closure Notes', 'Status', 'Closure Date'];
+  const cols    = ['X', 'Y', 'Z'];
+  let success = 0, failed = 0;
+
+  for (const source of SOURCES) {
+    for (let i = 0; i < 3; i++) {
+      const addr = `${cols[i]}1`;
+      try {
+        if (IS_SHAREPOINT && SP_FILE_PATHS[source.name]) {
+          const filePath = encodeURIComponent(SP_FILE_PATHS[source.name]);
+          const url = `${SP_SITE}/_api/web/getfilebyserverrelativeurl('${filePath}')/workbook/worksheets('${encodeURIComponent(source.sheet)}')/range(address='${addr}')`;
+          const digest = await getDigest();
+          const r = await fetch(url, {
+            method: 'PATCH', credentials: 'include',
+            headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json', 'X-RequestDigest': digest, 'IF-MATCH': '*' },
+            body: JSON.stringify({ values: [[headers[i]]] })
+          });
+          if (r.ok) success++; else { failed++; console.error(`${source.name} ${addr}: ${r.status}`); }
+        } else {
+          const url = `${apiBaseFor(source)}/range(address='${addr}')`;
+          const r = await fetch(url, { method: 'PATCH', headers: { 'Authorization': `Bearer ${CONFIG.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ values: [[headers[i]]] }) });
+          if (r.ok) success++; else { failed++; console.error(`${source.name} ${addr}: ${r.status}`); }
+        }
+      } catch(e) { failed++; console.error(`${source.name} ${addr}:`, e); }
+    }
+  }
+
+  if (failed === 0) {
+    showToast(`✓ Headers written to X/Y/Z on all 5 files (${success} cells updated)`, 'success');
+  } else {
+    showToast(`Done — ${success} cells updated, ${failed} failed. Check console.`, 'error');
+  }
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  // Apply saved SLA preset — highlight correct button
+  document.querySelectorAll('.sla-preset-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.preset === activeSLAPreset);
+  });
+  loadTickets();
+  setInterval(() => { if (CONFIG.token) loadTickets(); }, 5 * 60 * 1000);
+});
+</script>
+</body>
+</html>
